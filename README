@@ -1,0 +1,2 @@
+The libsysve package contains the library which is used by VE programs
+to invoke VE-specific system calls.

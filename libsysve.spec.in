@@ -1,0 +1,64 @@
+Name:           @PACKAGE_NAME@-musl
+Version:        @PACKAGE_VERSION@
+Release:	@RELEASE@
+Summary:        VE system call library
+Group:          System Environment/Libraries
+License:        MIT
+#ULI:
+Source0:        @PACKAGE_NAME@-@PACKAGE_VERSION@.tar.gz
+Vendor:         NEC Corporation
+BuildArch:      x86_64
+BuildRequires:  veos-musl-headers, vedebuginfo
+Requires:       musl-libc-ve
+#AutoReqProv:    no
+
+%description
+The libsysve package contains the library which is used by VE programs
+to invoke VE-specific system calls.
+
+%package        devel
+Summary:        Headers for libsysve
+Requires:       %{name} = %{version}-%{release}
+
+%description    devel
+This package contains the files required to build VE programs that use
+libsysve.
+
+%define _prefix @prefix@
+%define _libdir @prefix@/lib
+%define __strip @ve_prefix@/bin/nstrip
+%global __debug_install_post @ve_prefix@/libexec/find-debuginfo.sh %{nil}
+
+%prep
+%{__rm} -rf ${RPM_BUILD_ROOT}
+
+%setup -q -n @PACKAGE_NAME@-@PACKAGE_VERSION@
+
+%build
+./configure --host=ve-nec-linux \
+    --prefix=%{_prefix} \
+    CC=@CC@ \
+    CFLAGS='@CFLAGS@' \
+    LDFLAGS='@LDFLAGS@'
+make
+
+%install
+make install DESTDIR=${RPM_BUILD_ROOT}
+
+%clean
+ls -l %{_libdir}
+%{__rm} -rf $RPM_BUILD_ROOT
+
+%files
+%defattr(-,root,root,-)
+%{_libdir}/*.so.*
+
+%files devel
+%defattr(-,root,root,-)
+%doc
+%{_includedir}/*.h
+%{_libdir}/*.a
+%{_libdir}/*.la
+%{_libdir}/*.so
+
+%changelog
