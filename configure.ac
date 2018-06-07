@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([libsysve], [1.0.1])
+AC_INIT([libsysve], [1.1.0])
 AC_CONFIG_SRCDIR([src/Makefile.am])
 AC_CONFIG_AUX_DIR([./build-aux])
 AC_CONFIG_MACRO_DIR([m4])
@@ -30,6 +30,7 @@ AC_PREFIX_DEFAULT([/opt/nec/ve])
 
 # Checks for programs.
 AC_PROG_CC([ncc])
+AM_PROG_AS
 AC_SUBST(LIBC_INC)
 # Checks for libraries.
 

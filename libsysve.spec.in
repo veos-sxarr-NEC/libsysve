@@ -1,6 +1,6 @@
 Name:           @PACKAGE_NAME@-musl
 Version:        @PACKAGE_VERSION@
-Release:	@RELEASE@
+Release:        @RELEASE@%{?dist}
 Summary:        VE system call library
 Group:          System Environment/Libraries
 License:        MIT
