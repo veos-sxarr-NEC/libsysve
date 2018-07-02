@@ -1,4 +1,9 @@
+%if "%{libc}" == "glibc"
+Name:           @PACKAGE_NAME@
+%else
 Name:           @PACKAGE_NAME@-musl
+%endif
+
 Version:        @PACKAGE_VERSION@
 Release:        @RELEASE@%{?dist}
 Summary:        VE system call library
@@ -8,8 +13,16 @@ License:        MIT
 Source0:        @PACKAGE_NAME@-@PACKAGE_VERSION@.tar.gz
 Vendor:         NEC Corporation
 BuildArch:      x86_64
-BuildRequires:  veos-musl-headers, vedebuginfo
+BuildRequires:  vedebuginfo
+
+%if "%{libc}" == "glibc"
+BuildRequires:  veos-headers
+Requires:       glibc-ve
+%else
+BuildRequires:  veos-musl-headers
 Requires:       musl-libc-ve
+%endif
+
 #AutoReqProv:    no
 
 %description
