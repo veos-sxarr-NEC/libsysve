@@ -28,6 +28,14 @@
 #include <veos_defs.h>
 #include <libvhcall.h>
 
+/**
+ * \defgroup vhcall VH call
+ *
+ * VH call is a feature for VE programs to invoke functions on VH.
+ *
+ * Please include "libvhcall.h".
+ */
+/*@{*/
 
 /**
  * @brief Load a VH library
@@ -35,7 +43,10 @@
  * @param[in] filename the file name to load on VH
  *
  * @return VH call handle of the VH library
- *         On error, return -1 and set errno.
+ * @retval -1 upon failure and the following errno is set:
+ *          - ENOENT  filename cannot be loaded;
+ *          - EFAULT  filename is not accessible;
+ *          - ENOMEM  not enough VH memory.
  */
 vhcall_handle vhcall_install(const char *filename)
 {
@@ -48,8 +59,11 @@ vhcall_handle vhcall_install(const char *filename)
  * @param hdl VH call handle of VH library
  * @param[in] symname the name of a function
  *
- * @return symbol ID of the function
- *         On error, return -1 and set errno.
+ * @return symbol ID of the function upon success; negative upon failure.
+ * @retval -1 upon failure and the following errno is set:
+ *          - EINVAL  symname is not found in hdl.
+ *          - EFAULT  symname is not accessible.
+ *          - ENOMEM  not enough VH memory.
  */
 int64_t vhcall_find(vhcall_handle hdl, const char *symname)
 {
@@ -65,7 +79,8 @@ int64_t vhcall_find(vhcall_handle hdl, const char *symname)
 * @param[out] outptr output buffer
 * @param outsize size of output buffer
 * 
-* @return return value from the function specified by symid
+* @return return value from the function specified by symid.
+* @retval -1 and errno is set when the return value is between -4095 and -1.
 */
 long vhcall_invoke(int64_t symid, const void *inptr, size_t insize,
 		   void *outptr, size_t outsize)
@@ -79,7 +94,8 @@ long vhcall_invoke(int64_t symid, const void *inptr, size_t insize,
  *
  * @param hdl VH call handle to close
  *
- * @return 0 on success, non-zero value on error.
+ * @retval 0 on success.
+ * @retval non-zero value on error: the value returned from dlclose() on VH.
  */
 int vhcall_uninstall(vhcall_handle hdl)
 {

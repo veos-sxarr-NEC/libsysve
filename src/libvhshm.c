@@ -35,14 +35,53 @@
 #include "vhshm.h"
 
 /**
- * @brief This function gets a System V shred memory on VH.
+ * \defgroup vhshm VH-VE SHM
  *
- * @param[in] key A key value associated with System V shared memory segment on
- * VH
+ * VH-VE SHM is a feature for VE programs to register System V shared
+ * memory created at VH side to DMAATB of VE. 
+ *
+ * Please include "vhshm.h".
+ *
+ * @note VH-VE SHM feature does not provide a function to create
+ *       System V shared memory. A user program at VH side needs to
+ *       create System V shared memory.
+ * @note System V shared memory needs to be created with SHM_HUGETLB
+ *       flag to allocate huge pages (2MB pages).
+ *       The kernel parameter "vm.nr_hugepages" needs to be set, in
+ *       order to allocate huge pages.
+ *        1. Check whether "vm.nr_hugepages" exists in /etc/sysctl.conf and files under /etc/sysctl.d and /usr/lib/sysctl.d.
+ *        2. If "vm.nr_hugepages" does not exists, add "vm.nr_hugepages = 4096" to /etc/sysctl.conf. 4096 is tentative value. Please set required value for your program.
+ *        3. If "vm.nr_hugepages" exists, update the value of "vm.nr_hugepages"
+ *        4. Execute "sysctl --system" command
+ * @note VE programs can use VE DMA feature to transfer data between
+ *       System V shared memory and VE memory registered to DMAATB.
+ */
+/*@{*/
+/**
+ * @brief This function gets the identifier of system V shared memory on VH.
+ *
+ * @note Argument is similar to shmget(2). Different points are shown below.
+ * @note If a specified size is smaller than actual shared memory
+ *       size, actual shared memory size is used.
+ * @note Invoking this function is not required if the program knows
+ *       the shared memory identifier.
+ *
+ * @param[in] key A key value associated with System V shared memory
+ *            segment on VH. Don't specify IPC_PRIVATE.
  * @param[in] size Size of System V shared memory segment on VH
- * @param[in] shmflag Flags
+ * @param[in] shmflag SHM_HUGETLB must be specified. Don't specify
+ *            SHM_NORESERVE IPC_EXCL and IPC_CREAT.
  *
  * @return A valid shared memory identifier on Success, -1 on Failure.
+ * - EINVAL SHM_HUGETLB is not specified as 3rd argument.
+ *          SHM_NORESERVE or IPC_EXCL or IPC_CREAT are specified as 3rd
+ *          argument.
+ * - EINVAL IPC_PRIVATE is specified as 1st argument.
+ * - EINVAL A segment with given key existed, but size is greater than
+ *          the size of the segment.
+ * - EACCES The user does not have permission to access the shared
+ *          memory segment, and does not have the CAP_IPC_OWNER capability.
+ * - ENOENT No segment exists for the given key.
  *
  * @internal
  * @author VHSHM
@@ -54,15 +93,28 @@ int vh_shmget(key_t key, size_t size, int shmflag)
 }
 
 /**
- * @brief This function attach a System V shred memory on VH.
+ * @brief This function attaches system V shared memory on VH and register it with DMAATB.
  *
- * @param[in] shmid System V shared memory segment identifier which is returned
- * by vh_shmget()
+ * @note Argument is similar to shmat(2). Different points are shown below.
+ * @note On Linux, it is possible to attach a shared memory segment even if it is already marked to be deleted. vh_shmat() follows it.
+ *
+ * @param[in] shmid System V shared memory segment identifier.
  * @param[in] shmaddr This argument must be NULL.
- * @param[in] shmflag Flags
+ * @param[in] shmflag SHM_RDONLY can be specified. Don't specify SHM_EXEC, SHM_REMAP and SHM_RND.
  * @param[in] vehva An address of pointer to store VEHVA.
  *
  * @return A valid shared memory identifier on Success, (void *)-1 on Failure.
+ * - EINVAL    shmaddr is not NULL.
+ * - EINVAL    SHM_EXEC, SHM_REMAP or SHM_RND are specified.
+ * - EINVAL    Invalid shmid value.
+ * - EFAULT    vehva is invalid or the specified segment is not huge page.
+ * - ENOMEM    Can't allocate DMAATB more. No enough memory at VH side.
+ * - ECANCELED Failed to update resource information (VEOS internal error).
+ * - EACCES    The calling process does not have the required permissions
+ *             for the requested attach type, and does not have the
+ *             CAP_IPC_OWNER capability.
+ * - ENOTSUP   VEOS does not connect to IVED.
+ * - EIDRM     shmid points to a removed identifier.
  *
  * @internal
  * @author VHSHM
@@ -75,12 +127,16 @@ void *vh_shmat(int shmid, const void *shmaddr, int shmflag, void **vehva)
 }
 
 /**
- * @brief This function detach a System V shred memory on VH.
+ * @brief This function detaches system V shared memory on VH and releases DMAATB entry.
  *
  * @param[in] shmaddr An address which is attached to System V shared memory on
  * VH
  *
  * @return 0 on Success, -1 on Failure.
+ * - ECANCELED Failed to update resource information (VEOS internal error).
+ * - EINVAL    shmaddr is invalid. There is no shared memory segment
+ *             attached at shmaddr, or shmaddr is not aligned on a page
+ *             boundary.
  *
  * @internal
  * @author VHSHM

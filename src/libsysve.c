@@ -31,6 +31,17 @@
 #include <veos_defs.h>
 #include <libsysve.h>
 
+/*! \mainpage Introduction
+ *
+ * The libsysve is the library which is used by VE programs to invoke
+ * VE-specific system calls such as VE DMA, VE AIO, VH call and VH-VE SHM.
+ *
+ * This document describes public APIs for VE programs.
+ * Please click "Modules" at the left frame to show modules in the libsysve.
+ *
+ * \author NEC Corporation
+ * \copyright 2017-2018. Licensed under the terms of the MIT license.
+ */
 /**
  * @brief This function gets the setting of PCI synchronization from PCISYAR and
  * PCISYMR.
