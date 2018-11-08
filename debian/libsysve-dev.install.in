@@ -1,0 +1,4 @@
+.@prefix@/include/*.h
+.@prefix@/lib/*.a
+.@prefix@/lib/*.la
+.@prefix@/lib/*.so

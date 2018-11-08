@@ -1,0 +1,24 @@
+Source: @PACKAGE@
+Section: libs
+Priority: extra
+Maintainer: NEC Corporation
+Build-Depends: debhelper (>=10), dh-autoreconf, BUILD_DEPS
+Standards-Version: 3.9.8
+
+Package: @PACKAGE@
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${misc:Depends}, ${shlibs:Depends} DEPS
+Description: VE system call library
+ The libsysve package contains the library which is used by VE programs
+ to invoke VE-specific system calls.
+
+Package: @PACKAGE@-dev
+Architecture: any
+Multi-Arch: same
+Depends: ${misc:Depends},
+         @PACKAGE@ (= @VERSION@-@RELEASE@)
+Description: Headers for libsysve
+ This package contains the files required to build VE programs that use
+ libsysve.

@@ -1,0 +1,32 @@
+#!/usr/bin/make -f
+export DH_VERBOSE = 1
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+export DEB_VENDOR = "NEC Corporation"
+export PREFIX = "@prefix@"
+
+DBG_PREFIX := $(subst /musl,,$(PREFIX))
+
+%:
+	dh $@
+
+override_dh_autoreconf:
+	PATH=/opt/nec/ve/bin:${PATH} /opt/nec/ve/bin/autoreconf -isf
+
+override_dh_auto_configure:
+	./configure --prefix=${PREFIX} \
+				--host=ve-nec-linux \
+				--with-release-id=@RELEASE@ \
+				CC=@CC@ \
+				CFLAGS='@CFLAGS@' \
+				LDFLAGS='@LDFLAGS@' 
+	chmod a+x debian/rules
+	rm -rf debian/*.in
+
+override_dh_install:
+	dh_install
+
+override_dh_strip:
+	PATH=/opt/nec/ve/ve-nec-linux/bin:${PATH} dh_strip
+	install -d debian/.debhelper/libsysve-musl/dbgsym-root$(DBG_PREFIX)
+	mv debian/.debhelper/libsysve-musl/dbgsym-root/usr/lib \
+		debian/.debhelper/libsysve-musl/dbgsym-root$(DBG_PREFIX)/

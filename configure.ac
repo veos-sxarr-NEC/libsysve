@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([libsysve], [1.3.0])
+AC_INIT([libsysve], [1.3.2])
 AC_CONFIG_SRCDIR([src/Makefile.am])
 AC_CONFIG_AUX_DIR([./build-aux])
 AC_CONFIG_MACRO_DIR([m4])
@@ -49,5 +49,10 @@ AC_TYPE_SSIZE_T
 AC_CONFIG_FILES([Makefile
 		 libsysve.spec
 		 Doxyfile
-                 src/Makefile])
+                 src/Makefile
+                 debian/control
+                 debian/copyright
+                 debian/libsysve-dev.install
+                 debian/libsysve.install
+                 debian/rules])
 AC_OUTPUT
