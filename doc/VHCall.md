@@ -16,6 +16,7 @@ For example, execute the following command as root.
 ~~~
 # yum install libsysve-devel
 ~~~
+@note If you are using musl-libc as C library, please install libsysve-musl-devel instead of libsysve-devel.
 
 If you execute a program using VH call only, no extra packages are required.
 
@@ -61,6 +62,7 @@ $ gcc -shared -fpic -o libvhhello.so libvhhello.c
 A VE program to call the function hello using VH call is shown below.
 
 ~~~c
+#include <stddef.h> /* size_t requires stddef.h. */
 #include <libvhcall.h>
 int main()
 {
@@ -94,7 +96,7 @@ To execute a VH function with VH call:
 Compile source code on VE side as shown below.
 
 ~~~
-$ /opt/nec/ve/bin/musl-ncc -o hello hello.c
+$ /opt/nec/ve/bin/ncc -o hello hello.c
 ~~~
 
 The VH call API functions are in libsysve library, linked by default.

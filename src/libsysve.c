@@ -30,14 +30,27 @@
 #include <sysve.h>
 #include <veos_defs.h>
 #include <libsysve.h>
+#include <pthread.h>
 
 /*! \mainpage Introduction
  *
- * The libsysve is the library which is used by VE programs to invoke
- * VE-specific system calls such as VE DMA, VE AIO, VH call and VH-VE SHM.
+ * The libsysve package contains three libraries which are used by VE
+ * programs to invoke VE-specific system calls or enable an additional
+ * feature.
  *
- * This document describes public APIs for VE programs.
- * Please click "Modules" at the left frame to show modules in the libsysve.
+ *  * libsysve: VH call, VH-VE SHM
+ *  * libveio:  VE DMA, VE AIO
+ *  * libveaccio: Accelerated I/O
+ *
+ * To build VE programs using libraris in the libsysve package,
+ * libsysve-devel package needs to be installed.
+ *
+ * @note glibc becomes the default C library for VE programs. So, we
+ * assume glibc environment in this document, if musl-libc is not
+ * explicitly mentioned. 
+ * @note For musl-libc environment, all features are implemented in the
+ * single libsysve library. Accelerated I/O is not supported for
+ * musl-libc environment.
  *
  * \author NEC Corporation
  * \copyright 2017-2018. Licensed under the terms of the MIT license.
@@ -128,4 +141,3 @@ ssize_t ve_get_ve_info(char *name, char *buffer, size_t size)
 							(uint64_t)buffer, size);
 	return ret;
 }
-

@@ -31,6 +31,7 @@
 #include "veaio.h"
 #include <stdio.h>
 #include <veos_defs.h>
+#include <unistd.h>
 
 /**
  * \defgroup veaio VE AIO
@@ -40,7 +41,11 @@
  * and VH and actual I/O are done asynchronously.
  *
  * Please include "veaio.h".
+ * Please specify "-lveio -pthread" option to the compiler driver to
+ * link libveio.
  *
+ * @note If you use musl-libc as C library, "-lveio -pthread" option
+ *       is not required.
  * @note VE AIO expects an ordinary file opened without O_DIRECT flag.
  *       Socket, pipe or fifo can't be used.
  * @note Calling fork() or vfork() when read/write operation status is
@@ -63,9 +68,9 @@
  * @brief This function returns a new ve_aio_ctx managing a read/write request.
  *
  * @note User must initialize a ve_aio_ctx for AIO operation
- * @note User must invoke this function as many as multiplicity 
+ * @note User must invoke this function as many as multiplicity
  *       of read/write requests
- * @note For example, initialize two contexts to submit two read/write requests 
+ * @note For example, initialize two contexts to submit two read/write requests
  *       at a time
  * @note Context can be reused after completion of previous request
  * @retval ve_aio_ctx on success

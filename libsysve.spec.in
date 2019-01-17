@@ -18,16 +18,18 @@ BuildRequires:  vedebuginfo
 %if "%{libc}" == "glibc"
 BuildRequires:  veos-headers
 Requires:       glibc-ve
+%define _opt    --enable-separatedlibs
 %else
 BuildRequires:  veos-musl-headers
 Requires:       musl-libc-ve
+%define _opt    %{nil}
 %endif
 
 #AutoReqProv:    no
 
 %description
-The libsysve package contains the library which is used by VE programs
-to invoke VE-specific system calls.
+The libsysve package contains the libraries which are used by VE programs
+to invoke VE-specific system calls or enable an additional feature.
 
 %package        devel
 Summary:        Headers for libsysve
@@ -35,7 +37,7 @@ Requires:       %{name} = %{version}-%{release}
 
 %description    devel
 This package contains the files required to build VE programs that use
-libsysve.
+libraries in libsysve package.
 
 %define _prefix @prefix@
 %define _libdir @prefix@/lib
@@ -50,9 +52,7 @@ libsysve.
 %build
 ./configure --host=ve-nec-linux \
     --prefix=%{_prefix} \
-    CC=@CC@ \
-    CFLAGS='@CFLAGS@' \
-    LDFLAGS='@LDFLAGS@'
+    CC=@CC@ CFLAGS='@CFLAGS@' LDFLAGS='@LDFLAGS@' %{_opt}
 make
 
 %install

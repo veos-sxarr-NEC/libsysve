@@ -11,12 +11,14 @@ It cannot request to read or write an ordinary file opened with O_DIRECT flag.
 It cannot also request to read or write socket and pipe.
 
 ## Prerequisite
-To develop VE programs using VE AIO, please install libsysve-devel package, which has libveaio.h header delcaring VE AIO API functions.
+To develop VE programs using VE AIO, please install libsysve-devel package, which has veaio.h header delcaring VE AIO API functions.
 
 For example, execute the forllowing command as root.
 ~~~
-# yum install libsysve-musl-devel
+# yum install libsysve-devel
 ~~~
+
+@note If you are using musl-libc as C library, please install libsysve-musl-devel instead of libsysve-devel.
 
 If you execute a program using VE AIO only, no extra packages are required.
 
@@ -41,7 +43,7 @@ Basic use of VE AIO read/write is following steps.
 A simple program with VE AIO reading is following.
 ~~~c
 #include <stdio.h>
-#include <sys/types.h>
+#include <stdint.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -149,9 +151,11 @@ err:
 ## Compile and execute the VE program
 Save the above code as simple_aio.c and compile it on VE side as shown below.
 ~~~
-$ /opt/nec/ve/bin/musl-ncc -o simple_aio simple_aio.c
+$ /opt/nec/ve/bin/ncc -o simple_aio simple_aio.c -lveio -pthread
 ~~~
-The VE AIO API functions are in libsysve library, linked by default.
+Please note the VE AIO API functions are in libveio library in case of glibc environment. So, "-lveio -pthread" option is required.
+
+@note In case of musl-libc environment, the VE AIO API functions are in libsysve library which is linked by default. So, "-lveio -lpthread" option is not required.
 
 Execute compiled VE program.
 ~~~

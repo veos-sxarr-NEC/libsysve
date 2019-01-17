@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([libsysve], [1.3.2])
+AC_INIT([libsysve], [2.0.0])
 AC_CONFIG_SRCDIR([src/Makefile.am])
 AC_CONFIG_AUX_DIR([./build-aux])
 AC_CONFIG_MACRO_DIR([m4])
@@ -24,6 +24,16 @@ AC_ARG_WITH(ve-prefix, [AS_HELP_STRING([--with-ve-prefix],
 	    [ve_prefix=/opt/nec/ve])
 AC_SUBST(ve_prefix)
 
+AC_ARG_ENABLE([separatedlibs],
+[  --enable-separatedlibs    Turn on separated libraries],
+[case "${enableval}" in
+  yes) separatedlibs=true ;;
+  no)  separatedlibs=false ;;
+  *) AC_MSG_ERROR([bad value ${enableval} for --enable-separatedlibs]) ;;
+esac],[separatedlibs=false])
+AM_CONDITIONAL([SEPARATEDLIBS], [test x$separatedlibs = xtrue])
+
+
 CFLAGS="${CFLAGS} -I${top_srcdir}/include"
 
 AC_PREFIX_DEFAULT([/opt/nec/ve])
@@ -43,6 +53,9 @@ AC_TYPE_INT64_T
 AC_TYPE_SIZE_T
 AC_TYPE_UINT64_T
 AC_TYPE_SSIZE_T
+
+# Checks for header files.
+AC_CHECK_HEADERS([io_hook.h])
 
 # Checks for library functions.
 

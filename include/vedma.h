@@ -30,20 +30,25 @@
 #include <stdint.h>
 
 /**
- * \defgroup vedma VE DMA (EXPERIMENTAL)
+ * \defgroup vedma VE DMA
  *
- * VE DMA is a DMA data transfer feature for VE programs. This feature
- * is experimental. It is still under development. It is provided for
- * researches or evaluations.
+ * VE DMA is a DMA data transfer feature for VE programs.
  *
- * Please include <vedma.h>.
+ * Please include <vedma.h> in the source file.
+ * Please specify "-lveio -pthread" option to the compiler driver to
+ * link libveio.
  *
+ * @note If you use musl-libc as C library, "-lveio -pthread" option
+ *       is not required.
  * @note This feature is unavailable when system software such as MPI
  *       and ScaTeFS provided by NEC uses the DMA descriptor table. In
  *       this case, ve_dma_init() returns failure.
  * @note A source and a destination of DMA data transfer are specified
  *       by VE host virtual address. To obtain VE host virtual
  *       address, you need to register memory to DMAATB.
+ * @note A source and a destination of DMA data transfer need to be
+ *       aligned on a 4 byte boundary.
+ * @note Data transfer size needs to be less than 128MB.
  */
 /*@{*/
 
@@ -78,9 +83,9 @@ int ve_dma_init(void);
  *
  * @note This function writes the DMA transfer request to the DMA descriptor table.
  *
- * @param[in] dst VE host virtual address of destination
- * @param[in] src VE host virtual address of source
- * @param[in] size Transfer size
+ * @param[in] dst 4 byte aligned VE host virtual address of destination
+ * @param[in] src 4 byte aligned VE host virtual address of source
+ * @param[in] size Transfer size less than 128MB
  * @param[out] handle Handle used to inquire DMA completion
  *
  * @retval 0 On success
@@ -115,9 +120,9 @@ int ve_dma_poll(ve_dma_handle_t *handle);
  *
  * @note This function writes the DMA transfer request to the DMA descriptor table, and waits for finish.
  *
- * @param[in] dst VE host virtual address of destination
- * @param[in] src VE host virtual address of source
- * @param[in] size Transfer size
+ * @param[in] dst 4 byte aligned VE host virtual address of destination
+ * @param[in] src 4 byte aligned VE host virtual address of source
+ * @param[in] size Transfer size less than 128MB
  *
  * @retval 0 On success
  * @retval 1-65535 DMA failed @n
