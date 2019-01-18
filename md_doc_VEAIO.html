@@ -25,7 +25,7 @@
  <tr style="height: 56px;">
   <td style="padding-left: 0.5em;">
    <div id="projectname">libsysve
-   &#160;<span id="projectnumber">1.3.2</span>
+   &#160;<span id="projectnumber">2.0.0</span>
    </div>
   </td>
  </tr>
@@ -63,10 +63,11 @@ $(document).ready(function(){initNavTree('md_doc_VEAIO.html','');});
 </ul>
 <p>The files must be opened without O_DIRECT flag. It cannot request to read or write an ordinary file opened with O_DIRECT flag. It cannot also request to read or write socket and pipe.</p>
 <h2>Prerequisite</h2>
-<p>To develop VE programs using VE AIO, please install libsysve-devel package, which has libveaio.h header delcaring VE AIO API functions.</p>
+<p>To develop VE programs using VE AIO, please install libsysve-devel package, which has veaio.h header delcaring VE AIO API functions.</p>
 <p>For example, execute the forllowing command as root. </p>
-<div class="fragment"><div class="line"><span class="preprocessor"># yum install libsysve-musl-devel</span></div>
-</div><!-- fragment --><p>If you execute a program using VE AIO only, no extra packages are required.</p>
+<div class="fragment"><div class="line"><span class="preprocessor"># yum install libsysve-devel</span></div>
+</div><!-- fragment --><dl class="section note"><dt>Note</dt><dd>If you are using musl-libc as C library, please install libsysve-musl-devel instead of libsysve-devel.</dd></dl>
+<p>If you execute a program using VE AIO only, no extra packages are required.</p>
 <h2>APIs of VE AIO</h2>
 <p>A VE program using VE AIO needs to include "veaio.h". In the header, the following API functions are declared.</p>
 <ul>
@@ -88,7 +89,7 @@ $(document).ready(function(){initNavTree('md_doc_VEAIO.html','');});
 <h2>VE Code Using VE AIO</h2>
 <p>A simple program with VE AIO reading is following. </p>
 <div class="fragment"><div class="line"><span class="preprocessor">#include &lt;stdio.h&gt;</span></div>
-<div class="line"><span class="preprocessor">#include &lt;sys/types.h&gt;</span></div>
+<div class="line"><span class="preprocessor">#include &lt;stdint.h&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;fcntl.h&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;errno.h&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;stdlib.h&gt;</span></div>
@@ -193,8 +194,9 @@ $(document).ready(function(){initNavTree('md_doc_VEAIO.html','');});
 <div class="line">}</div>
 </div><!-- fragment --><h2>Compile and execute the VE program</h2>
 <p>Save the above code as simple_aio.c and compile it on VE side as shown below. </p>
-<div class="fragment"><div class="line">$ /opt/nec/ve/bin/musl-ncc -o simple_aio simple_aio.c</div>
-</div><!-- fragment --><p> The VE AIO API functions are in libsysve library, linked by default.</p>
+<div class="fragment"><div class="line">$ /opt/nec/ve/bin/ncc -o simple_aio simple_aio.c -lveio -pthread</div>
+</div><!-- fragment --><p> Please note the VE AIO API functions are in libveio library in case of glibc environment. So, "-lveio -pthread" option is required.</p>
+<dl class="section note"><dt>Note</dt><dd>In case of musl-libc environment, the VE AIO API functions are in libsysve library which is linked by default. So, "-lveio -lpthread" option is not required.</dd></dl>
 <p>Execute compiled VE program. </p>
 <div class="fragment"><div class="line">$ ./simple_aio</div>
 <div class="line">OK</div>

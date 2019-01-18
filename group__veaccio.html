@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.5"/>
-<title>libsysve: Data Structures</title>
+<title>libsysve: Accelerated I/O</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -46,19 +46,45 @@
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('annotated.html','');});
+$(document).ready(function(){initNavTree('group__veaccio.html','');});
 </script>
 <div id="doc-content">
 <div class="header">
   <div class="headertitle">
-<div class="title">Data Structures</div>  </div>
+<div class="title">Accelerated I/O</div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock">Here are the data structures with brief descriptions:</div><div class="directory">
-<table class="directory">
-<tr id="row_0_" class="even"><td class="entry"><img src="ftv2lastnode.png" alt="\" width="16" height="22" /><img src="ftv2cl.png" alt="C" width="24" height="22" /><a class="el" href="structve__dma__handle__t.html" target="_self">ve_dma_handle_t</a></td><td class="desc">This structure holds the state of the asynchronous DMA </td></tr>
-</table>
-</div><!-- directory -->
+
+<p>"Accelerated I/O" improves I/O performance by efficient data transfer between VE and VH.  
+<a href="#details">More...</a></p>
+<p>"Accelerated I/O" improves I/O performance by efficient data transfer between VE and VH. </p>
+<p>The throughput and the latency of the below read/write family system calls will be improved.</p>
+<ul>
+<li>read</li>
+<li>pread</li>
+<li>readv</li>
+<li>preadv</li>
+<li>write</li>
+<li>pwrite</li>
+<li>writev</li>
+<li>pwritev</li>
+</ul>
+<p>This feature uses huge pages as buffers, and the same I/O path which is used when data is transferred via InfiniBand. Because of this, this feature can be enabled when the below requirements are met.</p>
+<ul>
+<li>The kernel parameter "vm.nr_hugepages" is more than or equal to 256/per VE (Please see sysctl(8) man page to set the kernel parameter)</li>
+<li>VH isn't connected to the other VH by InfiniBand</li>
+<li>VH doesn't use ScaTeFS</li>
+</ul>
+<p>"Accelerated I/O" is enabled when 'libveaccio' is loaded at runtime. Please set environment variable VE_LD_PRELOAD to load it.</p>
+<div class="fragment"><div class="line">(For bash)</div>
+<div class="line">$ export VE_LD_PRELOAD=libveaccio.so.1</div>
+<div class="line">$ ./a.out</div>
+<div class="line">(For csh)</div>
+<div class="line">% setenv VE_LD_PRELOAD libveaccio.so.1</div>
+<div class="line">$ ./a.out</div>
+</div><!-- fragment --><dl class="section note"><dt>Note</dt><dd>Data is transferred every 8MB. So, read/write family system calls will not be atomic when the size is more than 8MB. </dd>
+<dd>
+No API is provided. </dd></dl>
 </div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

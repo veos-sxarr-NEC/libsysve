@@ -25,7 +25,7 @@
  <tr style="height: 56px;">
   <td style="padding-left: 0.5em;">
    <div id="projectname">libsysve
-   &#160;<span id="projectnumber">1.3.2</span>
+   &#160;<span id="projectnumber">2.0.0</span>
    </div>
   </td>
  </tr>
@@ -84,8 +84,10 @@ Functions</h2></td></tr>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>VE AIO is a asynchronous I/O feature for VE programs. </p>
 <p>VE programs can do their own tasks while data transfer between VE and VH and actual I/O are done asynchronously.</p>
-<p>Please include "veaio.h".</p>
-<dl class="section note"><dt>Note</dt><dd>VE AIO expects an ordinary file opened without O_DIRECT flag. Socket, pipe or fifo can't be used. </dd>
+<p>Please include "veaio.h". Please specify "-lveio -pthread" option to the compiler driver to link libveio.</p>
+<dl class="section note"><dt>Note</dt><dd>If you use musl-libc as C library, "-lveio -pthread" option is not required. </dd>
+<dd>
+VE AIO expects an ordinary file opened without O_DIRECT flag. Socket, pipe or fifo can't be used. </dd>
 <dd>
 Calling fork() or vfork() when read/write operation status is in progress, invoking AIO API results in undefined behavior. Check read/write operation status by using <a class="el" href="group__veaio.html#gac134802db58fcdf2d581681c4af8e574" title="This function gets state of read/write operation for the context. ">ve_aio_query()</a> or synchronize read/write operation by using <a class="el" href="group__veaio.html#ga667a5ae7564e7db279f10719ded0caf7" title="This function waits read/write request for the context. ">ve_aio_wait()</a>. </dd>
 <dd>

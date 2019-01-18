@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.5"/>
-<title>libsysve: VE DMA (EXPERIMENTAL)</title>
+<title>libsysve: VE DMA</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -25,7 +25,7 @@
  <tr style="height: 56px;">
   <td style="padding-left: 0.5em;">
    <div id="projectname">libsysve
-   &#160;<span id="projectnumber">1.3.2</span>
+   &#160;<span id="projectnumber">2.0.0</span>
    </div>
   </td>
  </tr>
@@ -55,7 +55,7 @@ $(document).ready(function(){initNavTree('group__vedma.html','');});
 <a href="#func-members">Functions</a> &#124;
 <a href="#var-members">Variables</a>  </div>
   <div class="headertitle">
-<div class="title">VE DMA (EXPERIMENTAL)</div>  </div>
+<div class="title">VE DMA</div>  </div>
 </div><!--header-->
 <div class="contents">
 
@@ -103,11 +103,16 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>ve_dma_handle_t::index
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>VE DMA is a DMA data transfer feature for VE programs. </p>
-<p>This feature is experimental. It is still under development. It is provided for researches or evaluations.</p>
-<p>Please include &lt;vedma.h&gt;.</p>
-<dl class="section note"><dt>Note</dt><dd>This feature is unavailable when system software such as MPI and ScaTeFS provided by NEC uses the DMA descriptor table. In this case, <a class="el" href="group__vedma.html#ga31de04f5ff54fa396d9e94e92d4132ab" title="This function initializes VE DMA feature. ">ve_dma_init()</a> returns failure. </dd>
+<p>Please include &lt;vedma.h&gt; in the source file. Please specify "-lveio -pthread" option to the compiler driver to link libveio.</p>
+<dl class="section note"><dt>Note</dt><dd>If you use musl-libc as C library, "-lveio -pthread" option is not required. </dd>
 <dd>
-A source and a destination of DMA data transfer are specified by VE host virtual address. To obtain VE host virtual address, you need to register memory to DMAATB. </dd></dl>
+This feature is unavailable when system software such as MPI and ScaTeFS provided by NEC uses the DMA descriptor table. In this case, <a class="el" href="group__vedma.html#ga31de04f5ff54fa396d9e94e92d4132ab" title="This function initializes VE DMA feature. ">ve_dma_init()</a> returns failure. </dd>
+<dd>
+A source and a destination of DMA data transfer are specified by VE host virtual address. To obtain VE host virtual address, you need to register memory to DMAATB. </dd>
+<dd>
+A source and a destination of DMA data transfer need to be aligned on a 4 byte boundary. </dd>
+<dd>
+Data transfer size needs to be less than 128MB. </dd></dl>
 <h2 class="groupheader">Function Documentation</h2>
 <a class="anchor" id="ga31de04f5ff54fa396d9e94e92d4132ab"></a>
 <div class="memitem">
@@ -178,9 +183,9 @@ Before using VE DMA, invoke this function to initialize VE DMA. <br/>
 <dl class="section note"><dt>Note</dt><dd>This function writes the DMA transfer request to the DMA descriptor table.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">dst</td><td>VE host virtual address of destination </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">src</td><td>VE host virtual address of source </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">size</td><td>Transfer size </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">dst</td><td>4 byte aligned VE host virtual address of destination </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">src</td><td>4 byte aligned VE host virtual address of source </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">size</td><td>Transfer size less than 128MB </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">handle</td><td>Handle used to inquire DMA completion</td></tr>
   </table>
   </dd>
@@ -273,9 +278,9 @@ Before using VE DMA, invoke this function to initialize VE DMA. <br/>
 <dl class="section note"><dt>Note</dt><dd>This function writes the DMA transfer request to the DMA descriptor table, and waits for finish.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">dst</td><td>VE host virtual address of destination </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">src</td><td>VE host virtual address of source </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">size</td><td>Transfer size</td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">dst</td><td>4 byte aligned VE host virtual address of destination </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">src</td><td>4 byte aligned VE host virtual address of source </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">size</td><td>Transfer size less than 128MB</td></tr>
   </table>
   </dd>
 </dl>
