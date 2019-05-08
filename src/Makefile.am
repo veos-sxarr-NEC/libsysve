@@ -5,7 +5,7 @@ libveio_la_SOURCES =	libveaio.c \
 			libsysve_vec_memcpy.S libsysve_atomic.s libsysve_utils.h
 libveaccio_la_SOURCES = accelerated_io.c
 libsysve_la_SOURCES =	libvhcall.c libveshm.c libsysve.c libvecr.c \
-			libvhshm.c libuserdma.c
+			libvhshm.c libuserdma.c libvepci.c
 libveio_la_LDFLAGS = -version-info 1:0:0 -Wl,--build-id=sha1 -lpthread
 libveio_la_CFLAGS = -I$(top_srcdir)/include -I@LIBC_INC@/include
 libveaccio_la_LDFLAGS = -version-info 1:0:0 -Wl,--build-id=sha1 -lpthread -lveio
@@ -27,5 +27,6 @@ include_HEADERS = $(top_srcdir)/include/libvhcall.h \
 					$(top_srcdir)/include/vhshm.h \
 					$(top_srcdir)/include/userdma.h \
 					$(top_srcdir)/include/veaio.h \
-					$(top_srcdir)/include/vedma.h
+					$(top_srcdir)/include/vedma.h \
+					$(top_srcdir)/include/vepci.h
 
