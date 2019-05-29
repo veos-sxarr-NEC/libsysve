@@ -44,8 +44,6 @@
  * Please specify "-lveio -pthread" option to the compiler driver to
  * link libveio.
  *
- * @note If you use musl-libc as C library, "-lveio -pthread" option
- *       is not required.
  * @note VE AIO expects an ordinary file opened without O_DIRECT flag.
  *       Socket, pipe or fifo can't be used.
  * @note Calling fork() or vfork() when read/write operation status is

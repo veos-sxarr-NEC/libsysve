@@ -18,8 +18,6 @@ For example, execute the forllowing command as root.
 # yum install libsysve-devel
 ~~~
 
-@note If you are using musl-libc as C library, please install libsysve-musl-devel instead of libsysve-devel.
-
 If you execute a program using VE AIO only, no extra packages are required.
 
 ## APIs of VE AIO
@@ -153,9 +151,7 @@ Save the above code as simple_aio.c and compile it on VE side as shown below.
 ~~~
 $ /opt/nec/ve/bin/ncc -o simple_aio simple_aio.c -lveio -pthread
 ~~~
-Please note the VE AIO API functions are in libveio library in case of glibc environment. So, "-lveio -pthread" option is required.
-
-@note In case of musl-libc environment, the VE AIO API functions are in libsysve library which is linked by default. So, "-lveio -lpthread" option is not required.
+Please note the VE AIO API functions are in libveio library. So, "-lveio -pthread" option is required.
 
 Execute compiled VE program.
 ~~~

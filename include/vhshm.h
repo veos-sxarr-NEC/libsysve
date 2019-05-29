@@ -26,6 +26,10 @@
 #ifndef __VE_LIBVHSHM_H
 #define __VE_LIBVHSHM_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <veos_defs.h>
 #include <vhshm_defs.h>
 #include <sys/shm.h>
@@ -33,5 +37,9 @@
 int vh_shmget(key_t, size_t, int);
 void *vh_shmat(int, const void *, int, void **);
 int vh_shmdt(const void *);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

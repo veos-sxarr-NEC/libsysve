@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2018 by NEC Corporation
+/* Copyright (C) 2017-2019 by NEC Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -31,6 +31,7 @@
 #include <veos_defs.h>
 #include <libsysve.h>
 #include <pthread.h>
+#include <sys/syscall.h>
 
 /*! \mainpage Introduction
  *
@@ -38,22 +39,15 @@
  * programs to invoke VE-specific system calls or enable an additional
  * feature.
  *
- *  * libsysve: VH call, VH-VE SHM
+ *  * libsysve: VH call, VH-VE SHM, Misc. API
  *  * libveio:  VE DMA, VE AIO
  *  * libveaccio: Accelerated I/O
  *
  * To build VE programs using libraris in the libsysve package,
  * libsysve-devel package needs to be installed.
  *
- * @note glibc becomes the default C library for VE programs. So, we
- * assume glibc environment in this document, if musl-libc is not
- * explicitly mentioned. 
- * @note For musl-libc environment, all features are implemented in the
- * single libsysve library. Accelerated I/O is not supported for
- * musl-libc environment.
- *
  * \author NEC Corporation
- * \copyright 2017-2018. Licensed under the terms of the MIT license.
+ * \copyright 2017-2019. Licensed under the terms of the MIT license.
  */
 /**
  * @brief This function gets the setting of PCI synchronization from PCISYAR and
@@ -139,5 +133,35 @@ ssize_t ve_get_ve_info(char *name, char *buffer, size_t size)
 	int ret = 0;
 	ret = syscall(SYS_sysve, VE_SYSVE_GET_VE_INFO, (uint64_t)name,
 							(uint64_t)buffer, size);
+	return ret;
+}
+
+/**
+ * \defgroup misc MISC
+ *
+ * Miscellaneous APIs.
+ * Please include "libsysve.h" in the source file.
+ *
+ */
+/*@{*/
+
+
+/**
+ * @brief This function returns NUMA node number on which process is running
+ *
+ * @param[out] node NUMA node number is stored into the integer pointed by it.
+ *
+ * @retval  0 on sucess. 
+ * @retval  -1 is returned and errno is set on failure.
+ *  - EFAULT  Argument points an invalid address.
+ *
+ * @internal
+ *
+ * @author libsysve
+ */
+int ve_get_numa_node(unsigned *node)
+{
+	int ret = 0;
+	ret = syscall(__NR_getcpu, NULL, node, NULL);
 	return ret;
 }

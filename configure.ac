@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.69])
-AC_INIT([libsysve], [2.0.0])
+AC_INIT([libsysve], [2.1.0])
 AC_CONFIG_SRCDIR([src/Makefile.am])
 AC_CONFIG_AUX_DIR([./build-aux])
 AC_CONFIG_MACRO_DIR([m4])
@@ -33,6 +33,11 @@ AC_ARG_ENABLE([separatedlibs],
 esac],[separatedlibs=false])
 AM_CONDITIONAL([SEPARATEDLIBS], [test x$separatedlibs = xtrue])
 
+AC_ARG_ENABLE([vhcallenhance],
+  [AS_HELP_STRING([--disable-vhcallenhance],
+  [disable vhcall enhanced API])],
+  [enable_vhcallenhance=${enableval}], [])
+AM_CONDITIONAL([VHCALLNOENHANCE], [test x"$enable_vhcallenhance" == x"no"])
 
 CFLAGS="${CFLAGS} -I${top_srcdir}/include"
 

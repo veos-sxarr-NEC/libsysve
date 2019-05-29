@@ -22,7 +22,7 @@ Requires:       glibc-ve
 %else
 BuildRequires:  veos-musl-headers
 Requires:       musl-libc-ve
-%define _opt    %{nil}
+%define _opt    --disable-vhcallenhance
 %endif
 
 #AutoReqProv:    no

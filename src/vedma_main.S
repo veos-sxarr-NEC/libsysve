@@ -33,12 +33,12 @@
 	lea.sl	%s40, _GLOBAL_OFFSET_TABLE_@PC_HI(%s40,%s41)
 #endif
 
-ve_dma_post:
-	#
-	# int ve_dma_post(uint64_t dst, uint64_t src, int size,
-	#		 ve_dma_handle_t *handle)
-	#
-
+#
+# int ve_dma_post(uint64_t dst, uint64_t src, int size,
+#		 ve_dma_handle_t *handle)
+#
+	.text
+	.balign 256
 #ifndef __PIC__
 	.extern	_vedma_vars
 #endif
@@ -46,6 +46,7 @@ ve_dma_post:
 	.global	ve_dma_post
 	.type	ve_dma_post, @function
 
+ve_dma_post:
 #ifdef __PIC__
 	# get vedma_vars (s37)
 	GET_GOT
@@ -64,7 +65,7 @@ ve_dma_post:
 	or		%s63, 0, %sl
 	cas.l		%s63, vedma_lock(%s37), 0
 	brne.l.nt	0, %s63, -8
-	fencem		2
+	fencem		3
 
 	# get index (s34)
 	ld		%s34, vedma_index(%s37)
@@ -94,7 +95,6 @@ ve_dma_post:
 	shm.l		%s1, 0x10(%s35)
 	shm.l		%s2, 0x08(%s35)
 	or		%s63, 0, (63)0
-	fencem          1
 	shm.l		%s63, 0(%s35)
 
 	# initialize handle
@@ -142,11 +142,11 @@ ve_dma_post:
 	or		%s0, -EAGAIN, (0)1
 	br.l.t		2b
 
-ve_dma_poll:
-	#
-	# int ve_dma_poll(ve_dma_handle_t *handle)
-	#
-
+#
+# int ve_dma_poll(ve_dma_handle_t *handle)
+#
+	.text
+	.balign 256
 #ifndef __PIC__
 	.extern	_vedma_vars
 #endif
@@ -154,6 +154,7 @@ ve_dma_poll:
 	.global	ve_dma_poll
 	.type	ve_dma_poll, @function
 
+ve_dma_poll:
 #ifdef __PIC__
 	# get vedma_vars (s37)
 	GET_GOT
@@ -222,11 +223,11 @@ ve_dma_poll:
 	or		%s0, -EAGAIN, (0)1
 	br.l.t		1b
 
-ve_dma_post_wait:
-	#
-	# int ve_dma_post_wait(uint64_t dst, uint64_t src, int size)
-	#
-
+#
+# int ve_dma_post_wait(uint64_t dst, uint64_t src, int size)
+#
+	.text
+	.balign 256
 #ifndef __PIC__
 	.extern	_vedma_vars
 #endif
@@ -234,6 +235,7 @@ ve_dma_post_wait:
 	.global	ve_dma_post_wait
 	.type	ve_dma_post_wait, @function
 
+ve_dma_post_wait:
 #ifdef __PIC__
 	# get vedma_vars (s37)
 	GET_GOT
@@ -252,7 +254,7 @@ ve_dma_post_wait:
 	or		%s63, 0, %sl
 	cas.l		%s63, vedma_lock(%s37), 0
 	brne.l.nt	0, %s63, -8
-	fencem		2
+	fencem		3
 
 	# get index (s34)
 	ld		%s34, vedma_index(%s37)
@@ -282,7 +284,6 @@ ve_dma_post_wait:
 	shm.l		%s1, 0x10(%s35)
 	shm.l		%s2, 0x08(%s35)
 	or		%s63, 0, (63)0
-	fencem          1
 	shm.l		%s63, 0(%s35)
 
 	# set vedma_status[index]
@@ -331,11 +332,11 @@ ve_dma_post_wait:
 
 	br.l.t		1b
 
-ve_dma_read_ctrl_reg:
-	#
-	# int ve_dma_read_ctrl_reg(uint64_t *regs);
-	#
-
+#
+# int ve_dma_read_ctrl_reg(uint64_t *regs);
+#
+	.text
+	.balign 256
 #ifndef __PIC__
 	.extern	_vedma_ctrl
 #endif
@@ -343,6 +344,7 @@ ve_dma_read_ctrl_reg:
 	.global	ve_dma_read_ctrl_reg
 	.type	ve_dma_read_ctrl_reg, @function
 
+ve_dma_read_ctrl_reg:
 #ifdef __PIC__
 	# get vedma_ctrl (s34)
 	GET_GOT

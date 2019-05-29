@@ -49,10 +49,12 @@
  * met.
  * 
  * * The kernel parameter "vm.nr_hugepages" is more than or equal to
- *   256/per VE (Please see sysctl(8) man page to set the kernel
- *   parameter)
- * * VH isn't connected to the other VH by InfiniBand
- * * VH doesn't use ScaTeFS
+ *   256/per VE
+ *    - Please see sysctl(8) man page to set the kernel parameter
+ *
+ * * VH does't use ScaTeFS
+ *    - Please enable ScaTeFS direct I/O instead of accelerated I/O
+ *      when VH use ScaTeFS
  *
  * "Accelerated I/O" is enabled when 'libveaccio' is loaded at runtime.
  * Please set environment variable VE_LD_PRELOAD to load it.
@@ -474,7 +476,7 @@ static ssize_t ve_accelerated_io_read_pread(int syscall_num, int fd, void *buf,
 		exit_result = exit_result + read_out_size;
 		/* Transfer data from VH buffer to VE buffer by VE DMA */
 		ret = ve_dma_post_wait(io_info.ve_vehva, io_info.vh_vehva,
-					GET_DMA_SIZE(transfer_size));
+					GET_DMA_SIZE(read_out_size));
 		if (SUCCESS != ret) {
 			exit_result = FAIL;
 			errno_bak = EIO;
@@ -482,7 +484,7 @@ static ssize_t ve_accelerated_io_read_pread(int syscall_num, int fd, void *buf,
 		}
 		/* Copy data from VE buffer to user buffer */
 		__libsysve_vec_memcpy(buf, (void *)io_info.ve_buff,
-					transfer_size);
+					read_out_size);
 
 		buf = buf + transfer_size;
 		ofs = ofs + transfer_size;
@@ -618,7 +620,7 @@ static ssize_t ve_accelerated_io_readv_preadv(int syscall_num, int fd,
 		exit_result = exit_result + read_out_size;
 		/* Transfer data from VH buffer to VE buffer by VE DMA */
 		ret = ve_dma_post_wait(io_info.ve_vehva, io_info.vh_vehva,
-					GET_DMA_SIZE(transfer_size));
+					GET_DMA_SIZE(read_out_size));
 		if (SUCCESS != ret) {
 			exit_result = FAIL;
 			errno_bak = EIO;

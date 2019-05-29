@@ -6,9 +6,9 @@ libveio_la_SOURCES =	libveaio.c \
 libveaccio_la_SOURCES = accelerated_io.c
 libsysve_la_SOURCES =	libvhcall.c libveshm.c libsysve.c libvecr.c \
 			libvhshm.c libuserdma.c
-libveio_la_LDFLAGS = -version-info 1:0:0 -Wl,--build-id=sha1 -lpthread
+libveio_la_LDFLAGS = -version-info 1:0:0 -Wl,--build-id=sha1 -lpthread -lsysve
 libveio_la_CFLAGS = -I$(top_srcdir)/include -I@LIBC_INC@/include
-libveaccio_la_LDFLAGS = -version-info 1:0:0 -Wl,--build-id=sha1 -lpthread -lveio
+libveaccio_la_LDFLAGS = -version-info 1:0:0 -Wl,--build-id=sha1 -lpthread -lveio -sysve
 libveaccio_la_CFLAGS = -I$(top_srcdir)/include -I@LIBC_INC@/include
 else
 lib_LTLIBRARIES = libsysve.la
@@ -28,4 +28,7 @@ include_HEADERS = $(top_srcdir)/include/libvhcall.h \
 					$(top_srcdir)/include/userdma.h \
 					$(top_srcdir)/include/veaio.h \
 					$(top_srcdir)/include/vedma.h
+if VHCALLNOENHANCE
+libsysve_la_CFLAGS += -DVHCALLNOENHANCE
+endif
 

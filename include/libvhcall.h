@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2018 by NEC Corporation
+/* Copyright (C) 2017-2019 by NEC Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -18,6 +18,10 @@
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
  */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef __VE_LIBVHCALL_H
 #define __VE_LIBVHCALL_H
 #include <vhcall.h>
@@ -26,5 +30,30 @@ vhcall_handle vhcall_install(const char *);
 int64_t vhcall_find(vhcall_handle, const char *);
 long vhcall_invoke(int64_t, const void *, size_t, void *, size_t);
 int vhcall_uninstall(vhcall_handle);
+#ifndef VHCALLNOENHANCE
+vhcall_args *vhcall_alloc_args(void);
+int vhcall_args_set_i8(vhcall_args *, int, int8_t);
+int vhcall_args_set_u8(vhcall_args *, int, uint8_t);
+int vhcall_args_set_i16(vhcall_args *, int, int16_t);
+int vhcall_args_set_u16(vhcall_args *, int, uint16_t);
+int vhcall_args_set_i32(vhcall_args *, int, int32_t);
+int vhcall_args_set_u32(vhcall_args *, int, uint32_t);
+int vhcall_args_set_i64(vhcall_args *, int, int64_t);
+int vhcall_args_set_u64(vhcall_args *, int, uint64_t);
+int vhcall_args_set_float(vhcall_args *, int, float);
+int vhcall_args_set_double(vhcall_args *, int, double);
+int vhcall_args_set_complex_float(vhcall_args *, int, _Complex float);
+int vhcall_args_set_complex_double(vhcall_args *, int, _Complex double);
+int vhcall_args_set_pointer(vhcall_args *, enum vhcall_args_intent,
+				int, void *, size_t);
+int vhcall_args_set_veoshandle(vhcall_args *, int);
+int vhcall_invoke_with_args(int64_t, vhcall_args *, uint64_t*);
+void vhcall_args_clear(vhcall_args *);
+void vhcall_args_free(vhcall_args *);
+#endif
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif

@@ -38,6 +38,10 @@ ve_map_dmades(uint64_t *vehva_dmades, uint64_t *vehva_dmactl)
 }
 #endif
 
+#define SUCCESS 0
+#define FAIL -1
+
+static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
 static int ve_dma_initialized = 0;
 
 /**
@@ -60,11 +64,15 @@ uint64_t	vedma_ctrl;
 int 
 ve_dma_init(void)
 {
-	int	ret = 0;
+	int	ret = SUCCESS;
 	int	i;
 
+	if (pthread_mutex_lock(&init_lock) != 0) {
+		return FAIL;
+	}
+
 	if(ve_dma_initialized){
-		return ret;
+		goto init_unlock;
 	}
 
 	ret = ve_map_dmades(&vedma_vars.vedma_desc, &vedma_ctrl);
@@ -77,6 +85,11 @@ ve_dma_init(void)
 		vedma_vars.vedma_status[i] = NULL;
 	}
 	ve_dma_initialized = 1;
+
+init_unlock:
+	if (pthread_mutex_unlock(&init_lock) != 0) {
+		return FAIL;
+	}
 
 	return ret;
 }

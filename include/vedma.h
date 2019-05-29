@@ -26,6 +26,10 @@
 #ifndef _LIBVEDMA_H_
 #define _LIBVEDMA_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <sys/types.h>
 #include <stdint.h>
 
@@ -34,12 +38,10 @@
  *
  * VE DMA is a DMA data transfer feature for VE programs.
  *
- * Please include <vedma.h> in the source file.
+ * Please include "vedma.h" in the source file.
  * Please specify "-lveio -pthread" option to the compiler driver to
  * link libveio.
  *
- * @note If you use musl-libc as C library, "-lveio -pthread" option
- *       is not required.
  * @note This feature is unavailable when system software such as MPI
  *       and ScaTeFS provided by NEC uses the DMA descriptor table. In
  *       this case, ve_dma_init() returns failure.
@@ -147,5 +149,9 @@ void ve_dma_read_ctrl_reg(uint64_t *regs);
 
 uint64_t ve_register_mem_to_dmaatb(void *vemva, size_t size);
 int ve_unregister_mem_from_dmaatb(uint64_t vehva);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _LIBVEDMA_H_ */

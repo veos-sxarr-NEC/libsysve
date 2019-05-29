@@ -1,4 +1,4 @@
-/* Copyright (C) 2017-2018 by NEC Corporation
+/* Copyright (C) 2017-2019 by NEC Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -36,5 +36,6 @@ int ve_get_pci_sync(uint8_t, uint64_t *, uint64_t *);
 ssize_t ve_get_ve_info(char *, char *, size_t);
 int ve_set_user_reg(uint64_t, uint64_t);
 int ve_get_fixed_vehva(uint64_t, uint64_t *);
+int ve_get_numa_node(unsigned *);
 
 #endif

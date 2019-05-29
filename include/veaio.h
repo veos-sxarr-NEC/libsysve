@@ -22,6 +22,10 @@
  * @file    veaio.h
  * @brief   Header file for VEAIO API.
  */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef __VE_AIO_H
 #define __VE_AIO_H
 
@@ -38,4 +42,8 @@ int ve_aio_read(struct ve_aio_ctx *ctx, int fd, ssize_t count, void *buf,
 int ve_aio_wait(struct ve_aio_ctx *ctx, ssize_t *retval, int *errnoval);
 int ve_aio_query(struct ve_aio_ctx *ctx, ssize_t *retval, int *errnoval);
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif

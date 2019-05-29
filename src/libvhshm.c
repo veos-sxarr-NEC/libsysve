@@ -51,7 +51,7 @@
  *       order to allocate huge pages.
  *        1. Check whether "vm.nr_hugepages" exists in /etc/sysctl.conf and files under /etc/sysctl.d and /usr/lib/sysctl.d.
  *        2. If "vm.nr_hugepages" does not exists, add "vm.nr_hugepages = 4096" to /etc/sysctl.conf. 4096 is tentative value. Please set required value for your program.
- *        3. If "vm.nr_hugepages" exists, update the value of "vm.nr_hugepages"
+ *        3. If "vm.nr_hugepages" exists, add the required value to the current value of "vm.nr_hugepages"
  *        4. Execute "sysctl --system" command
  * @note VE programs can use VE DMA feature to transfer data between
  *       System V shared memory and VE memory registered to DMAATB.
