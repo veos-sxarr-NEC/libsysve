@@ -3,11 +3,13 @@ var NAVTREE =
   [ "libsysve", "index.html", [
     [ "Introduction", "index.html", null ],
     [ "Getting Started with VE AIO", "md_doc_VEAIO.html", null ],
+    [ "Getting Started with VE DMA and VH-VE SHM", "md_doc_VEDMA.html", null ],
     [ "Getting Started with VH Call", "md_doc_VHCall.html", null ],
     [ "Modules", "modules.html", "modules" ],
     [ "Data Structures", null, [
       [ "Data Structures", "annotated.html", "annotated" ]
-    ] ]
+    ] ],
+    [ "Examples", "examples.html", "examples" ]
   ] ]
 ];
 

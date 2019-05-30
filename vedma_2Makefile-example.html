@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.5"/>
-<title>libsysve: Related Pages</title>
+<title>libsysve: vedma/Makefile</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -46,22 +46,33 @@
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('pages.html','');});
+$(document).ready(function(){initNavTree('vedma_2Makefile-example.html','');});
 </script>
 <div id="doc-content">
 <div class="header">
   <div class="headertitle">
-<div class="title">Related Pages</div>  </div>
+<div class="title">vedma/Makefile</div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock">Here is a list of all related documentation pages:</div><div class="directory">
-<table class="directory">
-<tr id="row_0_" class="even"><td class="entry"><img src="ftv2node.png" alt="o" width="16" height="22" /><a class="el" href="md_doc_VEAIO.html" target="_self">Getting Started with VE AIO</a></td><td class="desc"></td></tr>
-<tr id="row_1_"><td class="entry"><img src="ftv2node.png" alt="o" width="16" height="22" /><a class="el" href="md_doc_VEDMA.html" target="_self">Getting Started with VE DMA and VH-VE SHM</a></td><td class="desc"></td></tr>
-<tr id="row_2_" class="even"><td class="entry"><img src="ftv2lastnode.png" alt="\" width="16" height="22" /><a class="el" href="md_doc_VHCall.html" target="_self">Getting Started with VH Call</a></td><td class="desc"></td></tr>
-</table>
-</div><!-- directory -->
-</div><!-- contents -->
+<div class="fragment"><div class="line">NCC = /opt/nec/ve/bin/ncc</div>
+<div class="line">GCC = gcc</div>
+<div class="line"></div>
+<div class="line">ALL = mkshm.x86 rdshm.x86 dma.ve</div>
+<div class="line"></div>
+<div class="line">all: $(ALL)</div>
+<div class="line"></div>
+<div class="line">mkshm.x86: mkshm.c</div>
+<div class="line">        $(GCC) -o $@ $^</div>
+<div class="line"></div>
+<div class="line">rdshm.x86: rdshm.c</div>
+<div class="line">        $(GCC) -o $@ $^</div>
+<div class="line"></div>
+<div class="line">dma.ve: dma.c</div>
+<div class="line">        $(NCC) -o $@ $^ -lveio -lpthread</div>
+<div class="line"></div>
+<div class="line">clean:</div>
+<div class="line">        rm -f $(ALL) *.o</div>
+</div><!-- fragment --> </div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->

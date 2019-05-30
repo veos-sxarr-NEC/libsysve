@@ -25,7 +25,7 @@
  <tr style="height: 56px;">
   <td style="padding-left: 0.5em;">
    <div id="projectname">libsysve
-   &#160;<span id="projectnumber">2.0.0</span>
+   &#160;<span id="projectnumber">2.1.0</span>
    </div>
   </td>
  </tr>
@@ -58,113 +58,138 @@ $(document).ready(function(){initNavTree('md_doc_VHCall.html','');});
 <h2>Introduction</h2>
 <p>SX-Aurora TSUBASA provides VH call for invoking functions in shared libraries on VH from a VE program as system calls. VH call enables to develop a program using both VE and VH computing resources. It would be useful for offloading I/O and procedures not well-vectorized.</p>
 <h2>Prerequisite</h2>
+<h4>For using VE APIs</h4>
 <p>To develop VE programs using VH call, please install libsysve-devel package, which has libvhcall.h header declaring VH call API functions.</p>
 <p>For example, execute the following command as root. </p>
 <div class="fragment"><div class="line"><span class="preprocessor"># yum install libsysve-devel</span></div>
-</div><!-- fragment --> <dl class="section note"><dt>Note</dt><dd>If you are using musl-libc as C library, please install libsysve-musl-devel instead of libsysve-devel.</dd></dl>
+</div><!-- fragment --><p>If you are using musl-libc as C library, APIs introduced here are not supported.</p>
 <p>If you execute a program using VH call only, no extra packages are required.</p>
-<h2>Hello VH Call</h2>
-<p>In this chapter, a simple "Hello world" like program is introduced.</p>
-<h3>Function Prototype</h3>
-<p>VH call can call a function on VH with the following prototype: </p>
-<div class="fragment"><div class="line"><span class="keywordtype">long</span> vh_function(veos_handle *handle, <span class="keyword">const</span> <span class="keywordtype">void</span> *inptr, <span class="keywordtype">size_t</span> insize,</div>
-<div class="line">                 <span class="keywordtype">void</span> *outptr, <span class="keywordtype">size_t</span> outsize);</div>
-</div><!-- fragment --><ul>
-<li><code>handle</code>: an opaque VE OS handle, used for data transfer API functions.</li>
-<li><code>inptr</code>: pointer to input data buffer.</li>
-<li><code>insize</code>: size of input data buffer.</li>
-<li><code>outptr</code>: pointer to output data buffer.</li>
-<li><code>outsize</code>: size of output data buffer.</li>
-</ul>
-<h3>VH Code</h3>
-<p>Code to run on VH is shown below.</p>
-<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;stdio.h&gt;</span></div>
-<div class="line"><span class="keywordtype">long</span> hello(veos_handle *handle, <span class="keyword">const</span> <span class="keywordtype">void</span> *inp, <span class="keywordtype">size_t</span> insize,</div>
-<div class="line">           <span class="keywordtype">void</span> *outptr, <span class="keywordtype">size_t</span> outsize)</div>
-<div class="line">{</div>
-<div class="line">  printf(<span class="stringliteral">&quot;Hello, world\n&quot;</span>);</div>
-<div class="line">  <span class="keywordflow">return</span> 0;</div>
-<div class="line">}</div>
-</div><!-- fragment --><p>Save the above code as libvhhello.c.</p>
-<h3>Compile VH Code</h3>
-<p>To execute a function on VH using VH call, compile and link the souce file into a shared library.</p>
-<div class="fragment"><div class="line">$ gcc -shared -fpic -o libvhhello.so libvhhello.c</div>
-</div><!-- fragment --><h3>VE Code to Use VH Call</h3>
-<p>A VE program to call the function hello using VH call is shown below.</p>
-<div class="fragment"><div class="line"><span class="preprocessor">#include &lt;stddef.h&gt;</span> <span class="comment">/* size_t requires stddef.h. */</span></div>
-<div class="line"><span class="preprocessor">#include &lt;libvhcall.h&gt;</span></div>
-<div class="line"><span class="keywordtype">int</span> main()</div>
-<div class="line">{</div>
-<div class="line">  vhcall_handle handle = <a class="code" href="group__vhcall.html#gaad93c08018928af1b35b94bb110b9c2b" title="Load a VH library. ">vhcall_install</a>(<span class="stringliteral">&quot;./libvhhello.so&quot;</span>);</div>
-<div class="line">  int64_t symid = <a class="code" href="group__vhcall.html#ga7d7ad2f1f6ee25c73ca8ec99672ec319" title="Find a symbol in VH library. ">vhcall_find</a>(handle, <span class="stringliteral">&quot;hello&quot;</span>);</div>
-<div class="line">  <a class="code" href="group__vhcall.html#gaf8b07d9022faea59d60c8850f5c248fa" title="Invoke a function in VH library. ">vhcall_invoke</a>(symid, NULL, 0, NULL, 0);</div>
-<div class="line">  <span class="keywordflow">return</span> 0;</div>
-<div class="line">}</div>
-</div><!-- fragment --><p>Save the above code as hello.c.</p>
-<p>A program using VH call needs to include "libvhcall.h". In the header, the following API functions are declared.</p>
+<h4>For using VH APIs</h4>
+<p>To develop VH library invoked by VH Call, veos-devel package is available.</p>
+<p>For example, execute the following command as root. </p>
+<div class="fragment"><div class="line"><span class="preprocessor"># yum install veos-devel</span></div>
+</div><!-- fragment --><h2>APIs for getting started sample programs</h2>
+<h4>VE APIs of VH Call to invoke function with passing arguments</h4>
+<p>A VE program using VH Call needs to include <code>"libvhcall.h"</code>. In the header, the following API functions are declared.</p>
 <ul>
 <li><code><a class="el" href="group__vhcall.html#gaad93c08018928af1b35b94bb110b9c2b" title="Load a VH library. ">vhcall_install()</a></code> loads a VH shared library.</li>
 <li><code><a class="el" href="group__vhcall.html#ga7d7ad2f1f6ee25c73ca8ec99672ec319" title="Find a symbol in VH library. ">vhcall_find()</a></code> searches an address of a symbol a function in the VH library.</li>
-<li><code><a class="el" href="group__vhcall.html#gaf8b07d9022faea59d60c8850f5c248fa" title="Invoke a function in VH library. ">vhcall_invoke()</a></code> invokes a function on VH side.</li>
+<li><code><a class="el" href="group__vhcall.html#ga0a83e6efe3744e18398d8a60737d9022" title="Allocate VHCall arguments object (vhcall_args) ">vhcall_args_alloc()</a></code> allocates VHCall arguments object (vhcall_args).</li>
+<li><code><a class="el" href="group__vhcall.html#ga411891ce5a677e723b578c044c8e5359" title="Set a 8-bit signed integer argument. ">vhcall_args_set_i8()</a></code> sets a 8-bit signed integer argument.</li>
+<li><code><a class="el" href="group__vhcall.html#ga8de8ada5dd088cbfad9c0d1a2ceb1eda" title="Set a 8-bit unsigned integer argument. ">vhcall_args_set_u8()</a></code> sets a 8-bit unsigned integer argument.</li>
+<li><code><a class="el" href="group__vhcall.html#gad6df4b79dc7deb8b2aa70c822f854443" title="Set a 16-bit signed integer argument. ">vhcall_args_set_i16()</a></code> sets a 16-bit signed integer argument.</li>
+<li><code><a class="el" href="group__vhcall.html#gad722ddfe8d329ad5dc93fdf2df1cd2cc" title="Set a 16-bit unsigned integer argument. ">vhcall_args_set_u16()</a></code> sets a 16-bit unsigned integer argument.</li>
+<li><code><a class="el" href="group__vhcall.html#ga7e3bfd5c4f7f561a7d31164c1b7e3d42" title="Set a 32-bit signed integer argument. ">vhcall_args_set_i32()</a></code> sets a 32-bit signed integer argument.</li>
+<li><code><a class="el" href="group__vhcall.html#gadd7ee7f012c87057a1fb12cbc6ccf929" title="Set a 32-bit unsigned integer argument. ">vhcall_args_set_u32()</a></code> sets a 32-bit unsigned integer argument.</li>
+<li><code><a class="el" href="group__vhcall.html#ga347d39ffe3abc5102dc7b4bed26fb3ef" title="Set a 64-bit signed integer argument. ">vhcall_args_set_i64()</a></code> sets a 64-bit signed integer argument.</li>
+<li><code><a class="el" href="group__vhcall.html#ga83b08401bfca1956a7c7a1024c112f93" title="Set a 64-bit unsigned integer argument. ">vhcall_args_set_u64()</a></code> sets a 64-bit unsigned integer argument.</li>
+<li><code><a class="el" href="group__vhcall.html#gae73aeadaa15fd7ef9e713d31e130790e" title="Set a single precision floating point number argument. ">vhcall_args_set_float()</a></code> sets a single precision floating point number argument.</li>
+<li><code><a class="el" href="group__vhcall.html#ga33512acd9d6653958204a975416b2592" title="Set a double precision floating point number argument. ">vhcall_args_set_double()</a></code> sets a double precision floating point number argument.</li>
+<li><code><a class="el" href="group__vhcall.html#gab8956b92b1e29b1ddea02d7340a604c8" title="Set a single precision floating point complex object argument. ">vhcall_args_set_complex_float()</a></code> sets a single precision floating point complex object argument.</li>
+<li><code><a class="el" href="group__vhcall.html#gac136cb37f7027a6225ac14aaee2834fc" title="Set a double precision floating point complex object argument. ">vhcall_args_set_complex_double()</a></code> sets a double precision floating point complex object argument.</li>
+<li><code><a class="el" href="group__vhcall.html#ga74a1e8578f179368d3c1ee80b8c34701" title="Set VH function argument of pointer type. ">vhcall_args_set_pointer()</a></code> sets VH function argument of pointer type.</li>
+<li><code><a class="el" href="group__vhcall.html#ga14f045895ec1a0e81c9219a2f4e65fd5" title="Set VH function argument of pointer to VEOS handle. ">vhcall_args_set_veoshandle()</a></code> sets VH function argument of pointer to VEOS handle.</li>
+<li><code><a class="el" href="group__vhcall.html#ga8cd1b06a63e18dbb2cd0299e9812d324" title="Clear arguments set in VHCall arguments object. ">vhcall_args_clear()</a></code> clears arguments set in VHCall arguments object.</li>
+<li><code><a class="el" href="group__vhcall.html#ga5a6eb56699a9da0b744e4c9a1da8d85e" title="Free VHCall arguments object. ">vhcall_args_free()</a></code> frees VHCall arguments object.</li>
+<li><code><a class="el" href="group__vhcall.html#ga565bc39067c16da5db9febca694f515e" title="Invoke a function in VH library with passing arguments. ">vhcall_invoke_with_args()</a></code> invokes a function on VH side with passing arguments.</li>
 <li><code><a class="el" href="group__vhcall.html#ga14e45d064daecd926d1719b05fe1936d" title="Unload a VH library. ">vhcall_uninstall()</a></code> unloads a VH shared library.</li>
 </ul>
-<p>To execute a VH function with VH call:</p>
-<ol type="1">
-<li>Load a library by <code><a class="el" href="group__vhcall.html#gaad93c08018928af1b35b94bb110b9c2b" title="Load a VH library. ">vhcall_install()</a></code>, which returns a VH call handle, an identifier to specify the VH library loaded.</li>
-<li>Get a symbol ID, an identifier of a function in a VH library, by <code><a class="el" href="group__vhcall.html#ga7d7ad2f1f6ee25c73ca8ec99672ec319" title="Find a symbol in VH library. ">vhcall_find()</a></code> with the name of a function and a VH call handle.</li>
-<li>Invoke a function <code><a class="el" href="group__vhcall.html#gaf8b07d9022faea59d60c8850f5c248fa" title="Invoke a function in VH library. ">vhcall_invoke()</a></code>. The function is specified by its symbol ID.</li>
-<li>When the VH library is no longer used, unload the VH library by <code><a class="el" href="group__vhcall.html#ga14e45d064daecd926d1719b05fe1936d" title="Unload a VH library. ">vhcall_uninstall()</a></code> (optional).</li>
-</ol>
-<h3>Compile and Run VE Program</h3>
-<p>Compile source code on VE side as shown below.</p>
-<div class="fragment"><div class="line">$ /opt/nec/ve/bin/ncc -o hello hello.c</div>
-</div><!-- fragment --><p>The VH call API functions are in libsysve library, linked by default.</p>
-<p>Execute the VE program.</p>
-<div class="fragment"><div class="line">$ ./hello</div>
-<div class="line">Hello, world</div>
-</div><!-- fragment --><h2>Data Transfer</h2>
-<p>Since VH and VE are different memory address space, data need to be transferred on call. VH call provides a mechanism to transfer data for an argument and a result automatically between VE and VH. VH call also provides API functions for explicit data transfer.</p>
-<h3>Input and Output Arguments</h3>
-<p>VH call copies input data specified by the second argument from VE to VH on <a class="el" href="group__vhcall.html#gaf8b07d9022faea59d60c8850f5c248fa" title="Invoke a function in VH library. ">vhcall_invoke()</a>. The size of input data is specified by the third argument in bytes. VH call copies output data specified by the fourth argument from VH to VE on return from <a class="el" href="group__vhcall.html#gaf8b07d9022faea59d60c8850f5c248fa" title="Invoke a function in VH library. ">vhcall_invoke()</a>. The size of output data is specified by the fifth argument in bytes.</p>
-<p>For example, to invoke <code>func()</code> shown below, </p>
-<div class="fragment"><div class="line"><span class="keywordtype">long</span> func(type1 arg1, type2 arg2, type3 arg3, <span class="keyword">struct</span> abc *ret);</div>
-</div><!-- fragment --><p>Declare the following structure for input: </p>
-<div class="fragment"><div class="line"><span class="keyword">struct </span>func_input {</div>
-<div class="line">  type1 arg1;</div>
-<div class="line">  type2 arg2;</div>
-<div class="line">  type3 arg3;</div>
-<div class="line">};</div>
-</div><!-- fragment --><p>An example of a wrapper function for VH call is shown below:</p>
-<div class="fragment"><div class="line"><span class="keywordtype">long</span> func_wrapper(veos_handle *handle, <span class="keywordtype">void</span> *inptr, <span class="keywordtype">size_t</span> insize,</div>
-<div class="line">                  <span class="keywordtype">void</span> *outptr, <span class="keywordtype">size_t</span> outsize)</div>
-<div class="line">{</div>
-<div class="line">  assert(insize == <span class="keyword">sizeof</span>(<span class="keyword">struct</span> func_input));</div>
-<div class="line">  assert(outsize == <span class="keyword">sizeof</span>(<span class="keyword">struct</span> abc));</div>
-<div class="line">  <span class="keyword">struct </span>func_input *ip = inptr;</div>
-<div class="line">  <span class="keywordflow">return</span> func(ip-&gt;arg1, ip-&gt;arg2, ip-&gt;arg3, (<span class="keyword">struct</span> abc *)outptr);</div>
-<div class="line">}</div>
-</div><!-- fragment --><p>The code above is compiled into libfuncwrapper.so.</p>
-<p>From VE side, </p>
-<div class="fragment"><div class="line">vhcall_handle handle = <a class="code" href="group__vhcall.html#gaad93c08018928af1b35b94bb110b9c2b" title="Load a VH library. ">vhcall_install</a>(<span class="stringliteral">&quot;libfuncwrapper.so&quot;</span>);</div>
-<div class="line">int64_t sym = <a class="code" href="group__vhcall.html#ga7d7ad2f1f6ee25c73ca8ec99672ec319" title="Find a symbol in VH library. ">vhcall_find</a>(handle, <span class="stringliteral">&quot;func_wrapper&quot;</span>);</div>
-<div class="line"><span class="keyword">struct </span>func_input input = {</div>
-<div class="line">  .arg1 = arg1,</div>
-<div class="line">  .arg2 = arg2,</div>
-<div class="line">  .arg3 = arg3,</div>
-<div class="line">};</div>
-<div class="line"><span class="keyword">struct </span>abc ret;</div>
-<div class="line"><a class="code" href="group__vhcall.html#gaf8b07d9022faea59d60c8850f5c248fa" title="Invoke a function in VH library. ">vhcall_invoke</a>(sym, &amp;input, <span class="keyword">sizeof</span>(input), &amp;ret, <span class="keyword">sizeof</span>(ret));</div>
-<div class="line">...</div>
-</div><!-- fragment --><h3>API functions on VH</h3>
-<p>VH call provides API functions to transfer data between VE and VH explicitly.</p>
+<p>For VE side, sending data to VH is implemented as API of passing arguments. Receiving data from VH is also implemented as return value or pointer type argument which INTENT is OUT or INOUT. Please see <a href="group__vhcall.html#details">VH Call</a> for more detail.</p>
+<h4>VH APIs provided from VE OS to transfer data</h4>
+<p>A VH library invoked by VH Call can include <code>"libvepseudo.h"</code>. In the header, the following API functions are declared.</p>
 <ul>
-<li><code>ve_recv_data(veos_handle *handle, uint64_t src, size_t size, void *dst)</code></li>
 <li><code>ve_send_data(veos_handle *handle, uint64_t dst, size_t size, void *src)</code></li>
+<li><code>ve_recv_data(veos_handle *handle, uint64_t src, size_t size, void *dst)</code></li>
 </ul>
-<p>The first argument <code>handle</code>is VE OS handle passed from VH call as the first argument on VH side.</p>
-<h2>Return Value from VH</h2>
-<p>The return value of <code><a class="el" href="group__vhcall.html#gaf8b07d9022faea59d60c8850f5c248fa" title="Invoke a function in VH library. ">vhcall_invoke()</a></code> is the return value of VH function basically. However, when the return value of VH function is between -4095 and -1, the return value on VE is -1 and <code>errno</code> is set. This is because VH call is implemented as a system call.</p>
-<p>For example, a VH function returns -22 (= <code>-EINVAL</code>), <a class="el" href="group__vhcall.html#gaf8b07d9022faea59d60c8850f5c248fa" title="Invoke a function in VH library. ">vhcall_invoke()</a> on VE side returns -1 and <code>errno</code> is set to 22. </p>
+<p>The first argument handle is an opaque VE OS handle passed as a library function argument by calling <code><a class="el" href="group__vhcall.html#ga14f045895ec1a0e81c9219a2f4e65fd5" title="Set VH function argument of pointer to VEOS handle. ">vhcall_args_set_veoshandle()</a></code> on VE side. The second is address of VE virtual memory space.</p>
+<p>For VH side, sending data to VE and receiving data from VE are implemented as these APIs.</p>
+<h4>VH shared library Function Prototype</h4>
+<p>VH call can call a function on VH with the following prototype: </p>
+<div class="fragment"><div class="line">uint64_t vh_function(&lt;T&gt;, ...);</div>
+</div><!-- fragment --><p> Argument type &lt;T&gt; is allowed to be following variation:</p>
+<ul>
+<li>8, 16, 32, 64 bit signed/unsigned integer type</li>
+<li>(complex) single/double precision floating point type</li>
+<li>pointer type</li>
+<li>an opaque VE OS handle, used for data transfer API functions.</li>
+</ul>
+<h2>Two example programs</h2>
+<h4>First example</h4>
+<p>This is a simple program invoking VH shared library functions with passing arguments.</p>
+<p>Program invokes VH C library function which has three types arguments, pointer type, int type and float type. The pointer one is used as input and output.</p>
+<p>Also it invokes VH Fortran library function and subroutine. For Fortran, all arguments are treated as pointer type.</p>
+<p>Steps of programs are below.</p>
+<ol type="1">
+<li>Load a VH C library by <code><a class="el" href="group__vhcall.html#gaad93c08018928af1b35b94bb110b9c2b" title="Load a VH library. ">vhcall_install()</a></code>, which returns a VH call handle, an identifier to specify the VH library loaded.</li>
+<li>Get a symbol ID, an identifier of a function in a VH library, by <code><a class="el" href="group__vhcall.html#ga7d7ad2f1f6ee25c73ca8ec99672ec319" title="Find a symbol in VH library. ">vhcall_find()</a></code> with the name of a function and a VH call handle.</li>
+<li>Create an arguments object for a function in a VH library by <code><a class="el" href="group__vhcall.html#ga0a83e6efe3744e18398d8a60737d9022" title="Allocate VHCall arguments object (vhcall_args) ">vhcall_args_alloc()</a></code> and <code>vhcall_args_set_&lt;T&gt;()</code></li>
+<li>Invoke a function <code><a class="el" href="group__vhcall.html#ga565bc39067c16da5db9febca694f515e" title="Invoke a function in VH library with passing arguments. ">vhcall_invoke_with_args()</a></code>.<ul>
+<li>The function is specified by its symbol ID of 1st argument.</li>
+<li>The arguments are passed as an arguments object of 2nd argument.</li>
+<li>The return values is got as pointer of 3rd argument.</li>
+</ul>
+</li>
+<li>Unload the VH C library by <code><a class="el" href="group__vhcall.html#ga14e45d064daecd926d1719b05fe1936d" title="Unload a VH library. ">vhcall_uninstall()</a></code>.</li>
+<li>Load a Fortran library as step1.</li>
+<li>Get a Fortran function symbol ID as step2.</li>
+<li>Recreate the arguments object for a Fortran function by <code><a class="el" href="group__vhcall.html#ga8cd1b06a63e18dbb2cd0299e9812d324" title="Clear arguments set in VHCall arguments object. ">vhcall_args_clear()</a></code> and <code><a class="el" href="group__vhcall.html#ga74a1e8578f179368d3c1ee80b8c34701" title="Set VH function argument of pointer type. ">vhcall_args_set_pointer()</a></code>.</li>
+<li>Invoke a Fortran function as step4.</li>
+<li>Get a Fortran subroutine symbol ID as step2.</li>
+<li>Update 1st argument in arguments object by <code><a class="el" href="group__vhcall.html#ga74a1e8578f179368d3c1ee80b8c34701" title="Set VH function argument of pointer type. ">vhcall_args_set_pointer()</a></code>.</li>
+<li>Invoke a Fortran subroutine as step4.</li>
+<li>Free the arguments object by<code><a class="el" href="group__vhcall.html#ga5a6eb56699a9da0b744e4c9a1da8d85e" title="Free VHCall arguments object. ">vhcall_args_free()</a></code>.</li>
+<li>Unload the VH library as step6.</li>
+</ol>
+<h4>Second example</h4>
+<p>This is simple program using <code>ve_recv_data()</code> and <code>ve_send_data()</code>. Steps of programs are below.</p>
+<ol type="1">
+<li>Load a VH C library and get a symbol ID.</li>
+<li>Create arguments object.<ul>
+<li>Set VE OS handle to 1st argument by <code><a class="el" href="group__vhcall.html#ga14f045895ec1a0e81c9219a2f4e65fd5" title="Set VH function argument of pointer to VEOS handle. ">vhcall_args_set_veoshandle()</a></code></li>
+<li>Set VE virtual address to 2nd argument by <code><a class="el" href="group__vhcall.html#ga83b08401bfca1956a7c7a1024c112f93" title="Set a 64-bit unsigned integer argument. ">vhcall_args_set_u64()</a></code></li>
+</ul>
+</li>
+<li>Invoke a VH function.</li>
+<li>VH side get above two arguments and calls data transfer API with them.</li>
+</ol>
+<h4>Files</h4>
+<ul>
+<li><a href="vhcall_2sample1_8c-example.html">examples/vhcall/sample1.c</a> is VE program using VH Call for first example</li>
+<li><a href="vhcall_2libvhhello_8c-example.html">examples/vhcall/libvhhello.c</a> is VH C library invoked by VH Call for first example</li>
+<li><a href="vhcall_2libvhhello_8f90-example.html">examples/vhcall/libvhhello.f90</a> is VH Fortran library invoked by VH Call for first example</li>
+<li><a href="vhcall_2sample2_8c-example.html">examples/vhcall/sample2.c</a> is VE program using VH Call for second example</li>
+<li><a href="vhcall_2libdatatransfer_8c-example.html">examples/vhcall/libdatatransfer.c</a> is VH C library using VH data transfer API for second example</li>
+<li><a href="vhcall_2Makefile-example.html">examples/vhcall/Makefile</a> builds programs</li>
+</ul>
+<h4>Build programs</h4>
+<p>Put all files of this sample in the same directory.</p>
+<p>Build the programs. </p>
+<div class="fragment"><div class="line">$ make</div>
+</div><!-- fragment --><h4>Execute programs</h4>
+<p>For first example</p>
+<div class="fragment"><div class="line">$ ./sample1</div>
+<div class="line">Test <span class="keywordflow">for</span> C library</div>
+<div class="line">[VE] buffer: Hello, This is VE</div>
+<div class="line">[VH libvhhello.so:hello] 1starg: Hello, This is VE</div>
+<div class="line">[VH libvhhello.so:hello] 2ndarg: -1</div>
+<div class="line">[VH libvhhello.so:hello] 3rdarg: -1.111000</div>
+<div class="line">[VE] buffer: Hello VE, This is VH C library</div>
+<div class="line"></div>
+<div class="line">Test <span class="keywordflow">for</span> Fortran library</div>
+<div class="line"> [VH libvhhello_f.so:hellofunc] 1starg:Hello, This is VE</div>
+<div class="line"> [VH libvhhello_f.so:hellofunc] 2ndarg:         100</div>
+<div class="line">[VE] buffer: Hello, This is VE</div>
+<div class="line"> [VH libvhhello_f.so:hellosubr] 1starg:Hello, This is VE</div>
+<div class="line"> [VH libvhhello_f.so:hellosubr] 2ndarg:         100</div>
+<div class="line">[VE] buffer: Hello VE, This is VH Fortran library</div>
+</div><!-- fragment --><p>For second example</p>
+<div class="fragment"><div class="line">$ ./sample2</div>
+<div class="line">[VE] addr:0x60fffffff208, data:deadbeefbaadcafe</div>
+<div class="line">[VH] Success receiving msg! deadbeefbaadcafe</div>
+<div class="line">[VH] Success sending msg!   cafebaadbeefdead</div>
+<div class="line">[VE] addr:0x60fffffff208, data:cafebaadbeefdead</div>
+</div><!-- fragment --><p> <br/>
+</p>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

@@ -25,7 +25,7 @@
  <tr style="height: 56px;">
   <td style="padding-left: 0.5em;">
    <div id="projectname">libsysve
-   &#160;<span id="projectnumber">2.0.0</span>
+   &#160;<span id="projectnumber">2.1.0</span>
    </div>
   </td>
  </tr>
@@ -56,16 +56,13 @@ $(document).ready(function(){initNavTree('index.html','');});
 <div class="contents">
 <div class="textblock"><p>The libsysve package contains three libraries which are used by VE programs to invoke VE-specific system calls or enable an additional feature.</p>
 <ul>
-<li>libsysve: VH call, VH-VE SHM</li>
+<li>libsysve: VH call, VH-VE SHM, Misc. API</li>
 <li>libveio: VE DMA, VE AIO</li>
 <li>libveaccio: Accelerated I/O</li>
 </ul>
 <p>To build VE programs using libraris in the libsysve package, libsysve-devel package needs to be installed.</p>
-<dl class="section note"><dt>Note</dt><dd>glibc becomes the default C library for VE programs. So, we assume glibc environment in this document, if musl-libc is not explicitly mentioned. </dd>
-<dd>
-For musl-libc environment, all features are implemented in the single libsysve library. Accelerated I/O is not supported for musl-libc environment.</dd></dl>
 <dl class="section author"><dt>Author</dt><dd>NEC Corporation </dd></dl>
-<dl class="section copyright"><dt>Copyright</dt><dd>2017-2018. Licensed under the terms of the MIT license. </dd></dl>
+<dl class="section copyright"><dt>Copyright</dt><dd>2017-2019. Licensed under the terms of the MIT license. </dd></dl>
 </div></div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->

@@ -25,7 +25,7 @@
  <tr style="height: 56px;">
   <td style="padding-left: 0.5em;">
    <div id="projectname">libsysve
-   &#160;<span id="projectnumber">2.0.0</span>
+   &#160;<span id="projectnumber">2.1.0</span>
    </div>
   </td>
  </tr>
@@ -80,7 +80,7 @@ Functions</h2></td></tr>
 System V shared memory needs to be created with SHM_HUGETLB flag to allocate huge pages (2MB pages). The kernel parameter "vm.nr_hugepages" needs to be set, in order to allocate huge pages.<ol type="1">
 <li>Check whether "vm.nr_hugepages" exists in /etc/sysctl.conf and files under /etc/sysctl.d and /usr/lib/sysctl.d.</li>
 <li>If "vm.nr_hugepages" does not exists, add "vm.nr_hugepages = 4096" to /etc/sysctl.conf. 4096 is tentative value. Please set required value for your program.</li>
-<li>If "vm.nr_hugepages" exists, update the value of "vm.nr_hugepages"</li>
+<li>If "vm.nr_hugepages" exists, add the required value to the current value of "vm.nr_hugepages"</li>
 <li>Execute "sysctl --system" command </li>
 </ol>
 </dd>

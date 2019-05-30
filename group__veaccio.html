@@ -25,7 +25,7 @@
  <tr style="height: 56px;">
   <td style="padding-left: 0.5em;">
    <div id="projectname">libsysve
-   &#160;<span id="projectnumber">2.0.0</span>
+   &#160;<span id="projectnumber">2.1.0</span>
    </div>
   </td>
  </tr>
@@ -71,9 +71,14 @@ $(document).ready(function(){initNavTree('group__veaccio.html','');});
 </ul>
 <p>This feature uses huge pages as buffers, and the same I/O path which is used when data is transferred via InfiniBand. Because of this, this feature can be enabled when the below requirements are met.</p>
 <ul>
-<li>The kernel parameter "vm.nr_hugepages" is more than or equal to 256/per VE (Please see sysctl(8) man page to set the kernel parameter)</li>
-<li>VH isn't connected to the other VH by InfiniBand</li>
-<li>VH doesn't use ScaTeFS</li>
+<li>The kernel parameter "vm.nr_hugepages" is more than or equal to 256/per VE<ul>
+<li>Please see sysctl(8) man page to set the kernel parameter</li>
+</ul>
+</li>
+<li>VH does't use ScaTeFS<ul>
+<li>Please enable ScaTeFS direct I/O instead of accelerated I/O when VH use ScaTeFS</li>
+</ul>
+</li>
 </ul>
 <p>"Accelerated I/O" is enabled when 'libveaccio' is loaded at runtime. Please set environment variable VE_LD_PRELOAD to load it.</p>
 <div class="fragment"><div class="line">(For bash)</div>

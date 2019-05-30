@@ -25,7 +25,7 @@
  <tr style="height: 56px;">
   <td style="padding-left: 0.5em;">
    <div id="projectname">libsysve
-   &#160;<span id="projectnumber">2.0.0</span>
+   &#160;<span id="projectnumber">2.1.0</span>
    </div>
   </td>
  </tr>
@@ -103,10 +103,8 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>ve_dma_handle_t::index
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>VE DMA is a DMA data transfer feature for VE programs. </p>
-<p>Please include &lt;vedma.h&gt; in the source file. Please specify "-lveio -pthread" option to the compiler driver to link libveio.</p>
-<dl class="section note"><dt>Note</dt><dd>If you use musl-libc as C library, "-lveio -pthread" option is not required. </dd>
-<dd>
-This feature is unavailable when system software such as MPI and ScaTeFS provided by NEC uses the DMA descriptor table. In this case, <a class="el" href="group__vedma.html#ga31de04f5ff54fa396d9e94e92d4132ab" title="This function initializes VE DMA feature. ">ve_dma_init()</a> returns failure. </dd>
+<p>Please include "vedma.h" in the source file. Please specify "-lveio -pthread" option to the compiler driver to link libveio.</p>
+<dl class="section note"><dt>Note</dt><dd>This feature is unavailable when system software such as MPI and ScaTeFS provided by NEC uses the DMA descriptor table. In this case, <a class="el" href="group__vedma.html#ga31de04f5ff54fa396d9e94e92d4132ab" title="This function initializes VE DMA feature. ">ve_dma_init()</a> returns failure. </dd>
 <dd>
 A source and a destination of DMA data transfer are specified by VE host virtual address. To obtain VE host virtual address, you need to register memory to DMAATB. </dd>
 <dd>
@@ -140,7 +138,8 @@ Before using VE DMA, invoke this function to initialize VE DMA. <br/>
   </table>
   </dd>
 </dl>
-
+<dl><dt><b>Examples: </b></dt><dd><a class="el" href="vedma_2dma_8c-example.html#a2">vedma/dma.c</a>.</dd>
+</dl>
 </div>
 </div>
 <a class="anchor" id="gab9e0242a84fd9b5fb3c2f8f2c6c114e0"></a>
@@ -301,7 +300,8 @@ Before using VE DMA, invoke this function to initialize VE DMA. <br/>
   </table>
   </dd>
 </dl>
-
+<dl><dt><b>Examples: </b></dt><dd><a class="el" href="vedma_2dma_8c-example.html#a4">vedma/dma.c</a>.</dd>
+</dl>
 </div>
 </div>
 <a class="anchor" id="gaf50440b91b1544ed7bef388dfa646615"></a>
@@ -385,7 +385,8 @@ Before using VE DMA, invoke this function to initialize VE DMA. <br/>
   </table>
   </dd>
 </dl>
-
+<dl><dt><b>Examples: </b></dt><dd><a class="el" href="vedma_2dma_8c-example.html#a3">vedma/dma.c</a>.</dd>
+</dl>
 </div>
 </div>
 <a class="anchor" id="ga73e1a51f16a4c4ddf8486659eebcfba5"></a>
@@ -420,7 +421,8 @@ Before using VE DMA, invoke this function to initialize VE DMA. <br/>
   </table>
   </dd>
 </dl>
-
+<dl><dt><b>Examples: </b></dt><dd><a class="el" href="vedma_2dma_8c-example.html#a6">vedma/dma.c</a>.</dd>
+</dl>
 </div>
 </div>
 </div><!-- contents -->
