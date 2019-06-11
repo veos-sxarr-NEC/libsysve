@@ -60,6 +60,37 @@ $(document).ready(function(){initNavTree('md_doc_VHCall.html','');});
 <h2>Prerequisite</h2>
 <h4>For using VE APIs</h4>
 <p>To develop VE programs using VH call, please install libsysve-devel package, which has libvhcall.h header declaring VH call API functions.</p>
+<dl class="section note"><dt>Note</dt><dd><b>Workaround of an issue in the header file</b> </dd>
+<dd>
+The declaration of <a class="el" href="group__vhcall.html#ga0a83e6efe3744e18398d8a60737d9022" title="Allocate VHCall arguments object (vhcall_args) ">vhcall_args_alloc()</a> in “libvhcall.h” is wrong. </dd>
+<dd>
+Please inserte the correct declaration in source files which includes “libvhcall.h”. <div class="fragment"><div class="line"><span class="preprocessor">#ifdef __cplusplus</span></div>
+<div class="line"><span class="preprocessor"></span><span class="keyword">extern</span> <span class="stringliteral">&quot;C&quot;</span> {</div>
+<div class="line"><span class="preprocessor">#endif</span></div>
+<div class="line"><span class="preprocessor"></span><span class="keyword">extern</span> vhcall_args* <a class="code" href="group__vhcall.html#ga0a83e6efe3744e18398d8a60737d9022" title="Allocate VHCall arguments object (vhcall_args) ">vhcall_args_alloc</a>(<span class="keywordtype">void</span>);</div>
+<div class="line"><span class="preprocessor">#ifdef __cplusplus</span></div>
+<div class="line"><span class="preprocessor"></span>}</div>
+<div class="line"><span class="preprocessor">#endif</span></div>
+</div><!-- fragment --> </dd>
+<dd>
+For example, please find following sample source inserted the workaround. <div class="fragment"><div class="line">...</div>
+<div class="line">#include &lt;libvhcall.c&gt;</div>
+<div class="line"></div>
+<div class="line"><span class="preprocessor">#ifdef __cplusplus</span></div>
+<div class="line"><span class="preprocessor"></span><span class="keyword">extern</span> <span class="stringliteral">&quot;C&quot;</span> {</div>
+<div class="line"><span class="preprocessor">#endif</span></div>
+<div class="line"><span class="preprocessor"></span></div>
+<div class="line"><span class="keyword">extern</span> vhcall_args* <a class="code" href="group__vhcall.html#ga0a83e6efe3744e18398d8a60737d9022" title="Allocate VHCall arguments object (vhcall_args) ">vhcall_args_alloc</a>(<span class="keywordtype">void</span>);</div>
+<div class="line"></div>
+<div class="line"><span class="preprocessor">#ifdef __cplusplus</span></div>
+<div class="line"><span class="preprocessor"></span>}</div>
+<div class="line"><span class="preprocessor">#endif</span></div>
+<div class="line"><span class="preprocessor"></span></div>
+<div class="line"><span class="keywordtype">int</span> main() {</div>
+<div class="line">  vhcall_args *ca;</div>
+<div class="line">  ca = <a class="code" href="group__vhcall.html#ga0a83e6efe3744e18398d8a60737d9022" title="Allocate VHCall arguments object (vhcall_args) ">vhcall_args_alloc</a>();</div>
+<div class="line">...</div>
+</div><!-- fragment --></dd></dl>
 <p>For example, execute the following command as root. </p>
 <div class="fragment"><div class="line"><span class="preprocessor"># yum install libsysve-devel</span></div>
 </div><!-- fragment --><p>If you are using musl-libc as C library, APIs introduced here are not supported.</p>
