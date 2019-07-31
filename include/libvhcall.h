@@ -31,7 +31,7 @@ int64_t vhcall_find(vhcall_handle, const char *);
 long vhcall_invoke(int64_t, const void *, size_t, void *, size_t);
 int vhcall_uninstall(vhcall_handle);
 #ifndef VHCALLNOENHANCE
-vhcall_args *vhcall_alloc_args(void);
+vhcall_args *vhcall_args_alloc(void);
 int vhcall_args_set_i8(vhcall_args *, int, int8_t);
 int vhcall_args_set_u8(vhcall_args *, int, uint8_t);
 int vhcall_args_set_i16(vhcall_args *, int, int16_t);

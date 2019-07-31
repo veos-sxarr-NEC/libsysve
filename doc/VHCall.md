@@ -138,7 +138,7 @@ Steps of programs are below.
 
  - [examples/vhcall/sample1.c](vhcall_2sample1_8c-example.html) is VE program using VH Call for first example
  - [examples/vhcall/libvhhello.c](vhcall_2libvhhello_8c-example.html) is VH C library invoked by VH Call for first example
- - [examples/vhcall/libvhhello_f.f90](vhcall_2libvhhello_f_8f90-example.html) is VH Fortran library invoked by VH Call for first example
+ - [examples/vhcall/libvhhello.f90](vhcall_2libvhhello_8f90-example.html) is VH Fortran library invoked by VH Call for first example
  - [examples/vhcall/sample2.c](vhcall_2sample2_8c-example.html) is VE program using VH Call for second example
  - [examples/vhcall/libdatatransfer.c](vhcall_2libdatatransfer_8c-example.html) is VH C library using VH data transfer API for second example
  - [examples/vhcall/Makefile](vhcall_2Makefile-example.html) builds programs
@@ -187,7 +187,7 @@ $ ./sample2
 
 @example vhcall/sample1.c
 @example vhcall/libvhhello.c
-@example vhcall/libvhhello_f.f90
+@example vhcall/libvhhello.f90
 @example vhcall/sample2.c
 @example vhcall/libdatatransfer.c
 @example vhcall/Makefile
