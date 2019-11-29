@@ -25,7 +25,7 @@
  <tr style="height: 56px;">
   <td style="padding-left: 0.5em;">
    <div id="projectname">libsysve
-   &#160;<span id="projectnumber">2.1.1</span>
+   &#160;<span id="projectnumber">2.2.1</span>
    </div>
   </td>
  </tr>
@@ -108,9 +108,9 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>ve_dma_handle_t::index
 <dd>
 A source and a destination of DMA data transfer are specified by VE host virtual address. To obtain VE host virtual address, you need to register memory to DMAATB. </dd>
 <dd>
-A source and a destination of DMA data transfer need to be aligned on a 4 byte boundary. </dd>
+A source and a destination of DMA data transfer needs to be aligned on a 4 byte boundary. </dd>
 <dd>
-Data transfer size needs to be less than 128MB. </dd></dl>
+Data transfer size needs to be a multiple of 4 and less than 128MB. </dd></dl>
 <h2 class="groupheader">Function Documentation</h2>
 <a class="anchor" id="ga31de04f5ff54fa396d9e94e92d4132ab"></a>
 <div class="memitem">
@@ -184,7 +184,7 @@ Before using VE DMA, invoke this function to initialize VE DMA. <br/>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">dst</td><td>4 byte aligned VE host virtual address of destination </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">src</td><td>4 byte aligned VE host virtual address of source </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">size</td><td>Transfer size less than 128MB </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">size</td><td>Transfer size which is a multiple of 4 and less than 128MB </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">handle</td><td>Handle used to inquire DMA completion</td></tr>
   </table>
   </dd>
@@ -279,7 +279,7 @@ Before using VE DMA, invoke this function to initialize VE DMA. <br/>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">dst</td><td>4 byte aligned VE host virtual address of destination </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">src</td><td>4 byte aligned VE host virtual address of source </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">size</td><td>Transfer size less than 128MB</td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">size</td><td>Transfer size which is a multiple of 4 and less than 128MB</td></tr>
   </table>
   </dd>
 </dl>
