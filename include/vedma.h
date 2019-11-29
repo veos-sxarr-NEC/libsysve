@@ -48,9 +48,9 @@ extern "C" {
  * @note A source and a destination of DMA data transfer are specified
  *       by VE host virtual address. To obtain VE host virtual
  *       address, you need to register memory to DMAATB.
- * @note A source and a destination of DMA data transfer need to be
+ * @note A source and a destination of DMA data transfer needs to be
  *       aligned on a 4 byte boundary.
- * @note Data transfer size needs to be less than 128MB.
+ * @note Data transfer size needs to be a multiple of 4 and less than 128MB.
  */
 /*@{*/
 
@@ -87,7 +87,7 @@ int ve_dma_init(void);
  *
  * @param[in] dst 4 byte aligned VE host virtual address of destination
  * @param[in] src 4 byte aligned VE host virtual address of source
- * @param[in] size Transfer size less than 128MB
+ * @param[in] size Transfer size which is a multiple of 4 and less than 128MB
  * @param[out] handle Handle used to inquire DMA completion
  *
  * @retval 0 On success
@@ -124,7 +124,7 @@ int ve_dma_poll(ve_dma_handle_t *handle);
  *
  * @param[in] dst 4 byte aligned VE host virtual address of destination
  * @param[in] src 4 byte aligned VE host virtual address of source
- * @param[in] size Transfer size less than 128MB
+ * @param[in] size Transfer size which is a multiple of 4 and less than 128MB
  *
  * @retval 0 On success
  * @retval 1-65535 DMA failed @n

@@ -130,7 +130,8 @@ ve_aio_fini(struct ve_aio_ctx *ctx)
  *
  * @note This function internally invokes pread() system call at VH side
  * @note Context can be reused after completion of previous request
- * @note Number of bytes read at once is restricted to 2GB as well as pread()
+ * @note Number of bytes read at once is restricted to
+ *       2147479552Byte(2GB - 4KB) as well as pread()
  *
  * @param[in] ctx Context managing this request
  * @param[in] fd File descriptor which refer to a file this function reads to
@@ -183,8 +184,8 @@ ve_aio_read(struct ve_aio_ctx *ctx, int fd, ssize_t count, void *buf,
  *
  * @note This function internally invokes pwrite() system call at VH side
  * @note Context can be reused after completion of previous request
- * @note Number of bytes written at once is restricted to 2GB as well as
- *       pwrite()
+ * @note Number of bytes written at once is restricted to
+ *       2147479552Byte(2GB - 4KB) as well as pwrite()
  *
  * @param[in] ctx Context managing this request
  * @param[in] fd File descriptor which refer to a file function writes to
