@@ -28,8 +28,8 @@
 /**
  * \defgroup veaccio Accelerated I/O
  *
- * "Accelerated I/O" improves I/O performance by efficient data
- * transfer between VE and VH.
+ * "Accelerated I/O" is a feature which improves I/O performance by
+ * efficient data transfer between VE and VH.
  *
  * The throughput and the latency of the below read/write family
  * system calls will be improved.
@@ -43,33 +43,28 @@
  * * writev
  * * pwritev
  * 
- * This feature uses huge pages as buffers, and the same I/O path
- * which is used when data is transferred via InfiniBand. Because of
- * this, this feature can be enabled when the below requirements are
- * met.
+ * This feature can be enabled when the below requirements are met.
  * 
+ * * ScaTeFS is not installed
+ *    - Please enable ScaTeFS direct I/O instead of accelerated I/O
+ *      when ScaTeFS is installed
+ *
  * * The kernel parameter "vm.nr_hugepages" is more than or equal to
  *   256/per VE
+ *    - Accelerated I/O uses huge pages as a buffer
  *    - Please see sysctl(8) man page to set the kernel parameter
  *
- * * VH does't use ScaTeFS
- *    - Please enable ScaTeFS direct I/O instead of accelerated I/O
- *      when VH use ScaTeFS
- *
- * "Accelerated I/O" is enabled when 'libveaccio' is loaded at runtime.
- * Please set environment variable VE_LD_PRELOAD to load it.
+ * Please set environment variable VE_ACC_IO=1 to enable accelerated
+ * I/O.
  *
  * ~~~
- * (For bash)
- * $ export VE_LD_PRELOAD=libveaccio.so.1
- * $ ./a.out
- * (For csh)
- * % setenv VE_LD_PRELOAD libveaccio.so.1
+ * $ export VE_ACC_IO=1
  * $ ./a.out
  * ~~~
  *
- * @note Data is transferred every 8MB. So, read/write family system
- *       calls will not be atomic when the size is more than 8MB.
+ * @note Data is transferred every 8MB when accelerated I/O is
+ *       enabled. So, read/write family system calls will not be
+ *       atomic when the size is more than 8MB.
  * @note No API is provided.
  */
 

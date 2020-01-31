@@ -70,10 +70,30 @@ For VE side, sending data to VH is implemented as API of passing arguments. Rece
 A VH library invoked by VH Call can include `"libvepseudo.h"`.
 In the header, the following API functions are declared.
 
+#### Data transfer between caller VE thread and callee VH library function
+
 - `ve_send_data(veos_handle *handle, uint64_t dst, size_t size, void *src)`
 - `ve_recv_data(veos_handle *handle, uint64_t src, size_t size, void *dst)`
 
 The first argument handle is an opaque VE OS handle passed as a library function argument by calling `vhcall_args_set_veoshandle()` on VE side. The second is address of VE virtual memory space.
+
+#### Data transfer between caller VE thread and VH thread created by callee VH library function
+One way to implement asynchronous VH Call, callee VH library function creates worker threads and these threads do their works with transferring data with caller VE thread. But such VH threads don't have their VEOS handler.
+So they have to copy VEOS handler from parent's to transfer data with VE.
+
+- `veos_handler_copy(veos_handler *handle)`
+- `veos_handler_free(veos_handler *handle)`
+
+Normally, caller VE thread and callee VH library function have same thread ID
+and data transfer APIs don't have to take care of them.
+But VH thread created by callee VH library function gets different thread ID,
+and data transfer APIs have to take care of them to find caller VE thread.
+
+- `ve_send_data_tid(veos_handle *handle, uint64_t dst, size_t size, void *src, pid_t tid)`
+- `ve_recv_data_tid(veos_handle *handle, uint64_t src, size_t size, void *dst, pid_t tid)`
+
+The third argument tid is VE thread ID which has invoked VH Call.
+Then, these APIs can be used from worker thread created by VH library function of VH Call.
 
 For VH side, sending data to VE and receiving data from VE are implemented as these APIs.
 
