@@ -25,7 +25,7 @@
  <tr style="height: 56px;">
   <td style="padding-left: 0.5em;">
    <div id="projectname">libsysve
-   &#160;<span id="projectnumber">2.2.1</span>
+   &#160;<span id="projectnumber">2.3.0</span>
    </div>
   </td>
  </tr>
@@ -55,9 +55,9 @@ $(document).ready(function(){initNavTree('group__veaccio.html','');});
 </div><!--header-->
 <div class="contents">
 
-<p>"Accelerated I/O" improves I/O performance by efficient data transfer between VE and VH.  
+<p>"Accelerated I/O" is a feature which improves I/O performance by efficient data transfer between VE and VH.  
 <a href="#details">More...</a></p>
-<p>"Accelerated I/O" improves I/O performance by efficient data transfer between VE and VH. </p>
+<p>"Accelerated I/O" is a feature which improves I/O performance by efficient data transfer between VE and VH. </p>
 <p>The throughput and the latency of the below read/write family system calls will be improved.</p>
 <ul>
 <li>read</li>
@@ -69,25 +69,22 @@ $(document).ready(function(){initNavTree('group__veaccio.html','');});
 <li>writev</li>
 <li>pwritev</li>
 </ul>
-<p>This feature uses huge pages as buffers, and the same I/O path which is used when data is transferred via InfiniBand. Because of this, this feature can be enabled when the below requirements are met.</p>
+<p>This feature can be enabled when the below requirements are met.</p>
 <ul>
+<li>ScaTeFS is not installed<ul>
+<li>Please enable ScaTeFS direct I/O instead of accelerated I/O when ScaTeFS is installed</li>
+</ul>
+</li>
 <li>The kernel parameter "vm.nr_hugepages" is more than or equal to 256/per VE<ul>
+<li>Accelerated I/O uses huge pages as a buffer</li>
 <li>Please see sysctl(8) man page to set the kernel parameter</li>
 </ul>
 </li>
-<li>VH does't use ScaTeFS<ul>
-<li>Please enable ScaTeFS direct I/O instead of accelerated I/O when VH use ScaTeFS</li>
 </ul>
-</li>
-</ul>
-<p>"Accelerated I/O" is enabled when 'libveaccio' is loaded at runtime. Please set environment variable VE_LD_PRELOAD to load it.</p>
-<div class="fragment"><div class="line">(For bash)</div>
-<div class="line">$ export VE_LD_PRELOAD=libveaccio.so.1</div>
+<p>Please set environment variable VE_ACC_IO=1 to enable accelerated I/O.</p>
+<div class="fragment"><div class="line">$ export VE_ACC_IO=1</div>
 <div class="line">$ ./a.out</div>
-<div class="line">(For csh)</div>
-<div class="line">% setenv VE_LD_PRELOAD libveaccio.so.1</div>
-<div class="line">$ ./a.out</div>
-</div><!-- fragment --><dl class="section note"><dt>Note</dt><dd>Data is transferred every 8MB. So, read/write family system calls will not be atomic when the size is more than 8MB. </dd>
+</div><!-- fragment --><dl class="section note"><dt>Note</dt><dd>Data is transferred every 8MB when accelerated I/O is enabled. So, read/write family system calls will not be atomic when the size is more than 8MB. </dd>
 <dd>
 No API is provided. </dd></dl>
 </div><!-- contents -->

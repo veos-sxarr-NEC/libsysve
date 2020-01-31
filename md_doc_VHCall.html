@@ -25,7 +25,7 @@
  <tr style="height: 56px;">
   <td style="padding-left: 0.5em;">
    <div id="projectname">libsysve
-   &#160;<span id="projectnumber">2.2.1</span>
+   &#160;<span id="projectnumber">2.3.0</span>
    </div>
   </td>
  </tr>
@@ -97,11 +97,24 @@ $(document).ready(function(){initNavTree('md_doc_VHCall.html','');});
 <p>For VE side, sending data to VH is implemented as API of passing arguments. Receiving data from VH is also implemented as return value or pointer type argument which INTENT is OUT or INOUT. Please see <a href="group__vhcall.html#details">VH Call</a> for more detail.</p>
 <h4>VH APIs provided from VE OS to transfer data</h4>
 <p>A VH library invoked by VH Call can include <code>"libvepseudo.h"</code>. In the header, the following API functions are declared.</p>
+<h4>Data transfer between caller VE thread and callee VH library function</h4>
 <ul>
 <li><code>ve_send_data(veos_handle *handle, uint64_t dst, size_t size, void *src)</code></li>
 <li><code>ve_recv_data(veos_handle *handle, uint64_t src, size_t size, void *dst)</code></li>
 </ul>
 <p>The first argument handle is an opaque VE OS handle passed as a library function argument by calling <code><a class="el" href="group__vhcall.html#ga14f045895ec1a0e81c9219a2f4e65fd5" title="Set VH function argument of pointer to VEOS handle. ">vhcall_args_set_veoshandle()</a></code> on VE side. The second is address of VE virtual memory space.</p>
+<h4>Data transfer between caller VE thread and VH thread created by callee VH library function</h4>
+<p>One way to implement asynchronous VH Call, callee VH library function creates worker threads and these threads do their works with transferring data with caller VE thread. But such VH threads don't have their VEOS handler. So they have to copy VEOS handler from parent's to transfer data with VE.</p>
+<ul>
+<li><code>veos_handler_copy(veos_handler *handle)</code></li>
+<li><code>veos_handler_free(veos_handler *handle)</code></li>
+</ul>
+<p>Normally, caller VE thread and callee VH library function have same thread ID and data transfer APIs don't have to take care of them. But VH thread created by callee VH library function gets different thread ID, and data transfer APIs have to take care of them to find caller VE thread.</p>
+<ul>
+<li><code>ve_send_data_tid(veos_handle *handle, uint64_t dst, size_t size, void *src, pid_t tid)</code></li>
+<li><code>ve_recv_data_tid(veos_handle *handle, uint64_t src, size_t size, void *dst, pid_t tid)</code></li>
+</ul>
+<p>The third argument tid is VE thread ID which has invoked VH Call. Then, these APIs can be used from worker thread created by VH library function of VH Call.</p>
 <p>For VH side, sending data to VE and receiving data from VE are implemented as these APIs.</p>
 <h4>VH shared library Function Prototype</h4>
 <p>VH call can call a function on VH with the following prototype: </p>
