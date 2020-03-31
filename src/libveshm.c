@@ -41,7 +41,7 @@
  * @return 0 on success, -1 and set errno on failure
  */
 int 
-ve_shared_mem_open(void *vemva, size_t size, int syncnum, int mode_flag)
+ve_shared_mem_open(void *vemva, size_t size, int syncnum, long long mode_flag)
 {
 	return syscall((uint64_t)SYS_sysve, (uint64_t)VE_SYSVE_VESHM_CTL, 
 		       (uint64_t)VESHM_OPEN, vemva, size, 
@@ -61,7 +61,7 @@ ve_shared_mem_open(void *vemva, size_t size, int syncnum, int mode_flag)
  */
 void *
 ve_shared_mem_attach(pid_t pid, void *veshm_vemva, size_t size, 
-		     int syncnum, int mode_flag)
+		     int syncnum, long long mode_flag)
 {
 	uint64_t arg[VESHM_MAX_ARGS];
 	uint64_t ret;
@@ -87,7 +87,7 @@ ve_shared_mem_attach(pid_t pid, void *veshm_vemva, size_t size,
  * @return 0 on success, -1 and set errno on failure
  */
 int 
-ve_shared_mem_detach(void *veshm_addr, int mode_flag)
+ve_shared_mem_detach(void *veshm_addr, long long mode_flag)
 {
 	return syscall((uint64_t)SYS_sysve, (uint64_t)VE_SYSVE_VESHM_CTL, 
 		       (uint64_t)VESHM_DETACH, (uint64_t)veshm_addr, 
@@ -105,7 +105,7 @@ ve_shared_mem_detach(void *veshm_addr, int mode_flag)
  * @return 0 on success, -1 and set errno on failure
  */
 int 
-ve_shared_mem_close(void *vemva, size_t size, int syncnum, int mode_flag)
+ve_shared_mem_close(void *vemva, size_t size, int syncnum, long long mode_flag)
 {
 	return syscall((uint64_t)SYS_sysve, (uint64_t)VE_SYSVE_VESHM_CTL, 
 		       (uint64_t)VESHM_CLOSE, vemva, 
@@ -125,7 +125,7 @@ ve_shared_mem_close(void *vemva, size_t size, int syncnum, int mode_flag)
  * @retval 0x4000000 (64MB)
  */
 int
-ve_get_pgmode(int mode_flag, int pid, void *address)
+ve_get_pgmode(long long mode_flag, int pid, void *address)
 {
 	return (int)syscall((uint64_t)SYS_sysve, 
 			    (uint64_t)VE_SYSVE_VESHM_CTL, 

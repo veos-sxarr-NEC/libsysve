@@ -42,9 +42,6 @@ extern "C" {
  * Please specify "-lveio -pthread" option to the compiler driver to
  * link libveio.
  *
- * @note This feature is unavailable when system software such as MPI
- *       and ScaTeFS provided by NEC uses the DMA descriptor table. In
- *       this case, ve_dma_init() returns failure.
  * @note A source and a destination of DMA data transfer are specified
  *       by VE host virtual address. To obtain VE host virtual
  *       address, you need to register memory to DMAATB.

@@ -46,7 +46,7 @@ Please specify "-lveio -lpthread" option to the compiler driver to link libveio,
 In the header, the following API functions are declared.
 - `ve_dma_init()` Initializes VE DMA feature.
 - `ve_dma_post()` Issues asynchronous DMA.
-- `ve_dma_post()` Inquiries the completion of asynchronous DMA.
+- `ve_dma_poll()` Inquiries the completion of asynchronous DMA.
 - `ve_dma_post_wait()` Issues synchronous DMA.
 - `ve_dma_read_ctrl_reg()` Gets the value of DMA Control Register.
 - `ve_register_mem_to_dmaatb()`  Registers VE local memory to DMAATB.

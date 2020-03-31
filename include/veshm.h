@@ -31,12 +31,12 @@
 
 /* library functions of veshm  */
 
-int ve_shared_mem_open(void *, size_t, int, int);
-void *ve_shared_mem_attach(pid_t, void *, size_t, int, int);
-int ve_shared_mem_detach(void *, int);
-int ve_shared_mem_close(void *, size_t, int, int);
+int ve_shared_mem_open(void *, size_t, int, long long);
+void *ve_shared_mem_attach(pid_t, void *, size_t, int, long long);
+int ve_shared_mem_detach(void *, long long);
+int ve_shared_mem_close(void *, size_t, int, long long);
 
-int ve_get_pgmode(int, int, void *);
+int ve_get_pgmode(long long, int, void *);
 
 #endif
 
