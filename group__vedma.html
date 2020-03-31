@@ -25,7 +25,7 @@
  <tr style="height: 56px;">
   <td style="padding-left: 0.5em;">
    <div id="projectname">libsysve
-   &#160;<span id="projectnumber">2.3.0</span>
+   &#160;<span id="projectnumber">2.4.1</span>
    </div>
   </td>
  </tr>
@@ -104,9 +104,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>ve_dma_handle_t::index
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>VE DMA is a DMA data transfer feature for VE programs. </p>
 <p>Please include "vedma.h" in the source file. Please specify "-lveio -pthread" option to the compiler driver to link libveio.</p>
-<dl class="section note"><dt>Note</dt><dd>This feature is unavailable when system software such as MPI and ScaTeFS provided by NEC uses the DMA descriptor table. In this case, <a class="el" href="group__vedma.html#ga31de04f5ff54fa396d9e94e92d4132ab" title="This function initializes VE DMA feature. ">ve_dma_init()</a> returns failure. </dd>
-<dd>
-A source and a destination of DMA data transfer are specified by VE host virtual address. To obtain VE host virtual address, you need to register memory to DMAATB. </dd>
+<dl class="section note"><dt>Note</dt><dd>A source and a destination of DMA data transfer are specified by VE host virtual address. To obtain VE host virtual address, you need to register memory to DMAATB. </dd>
 <dd>
 A source and a destination of DMA data transfer needs to be aligned on a 4 byte boundary. </dd>
 <dd>

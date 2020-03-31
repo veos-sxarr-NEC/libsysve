@@ -25,7 +25,7 @@
  <tr style="height: 56px;">
   <td style="padding-left: 0.5em;">
    <div id="projectname">libsysve
-   &#160;<span id="projectnumber">2.3.0</span>
+   &#160;<span id="projectnumber">2.4.1</span>
    </div>
   </td>
  </tr>
@@ -58,20 +58,23 @@ $(document).ready(function(){initNavTree('vhcall_2Makefile-example.html','');});
 <div class="line">GCC = gcc</div>
 <div class="line">GFORT = gfortran</div>
 <div class="line"></div>
-<div class="line">ALL = sample1 libvhhello.so libvhhello_f.so sample2 libdatatransfer.so</div>
+<div class="line">ALL = sample1 sample2 libvhhello.so libvhhello_f.so sample3 libdatatransfer.so</div>
 <div class="line"></div>
 <div class="line">all: $(ALL)</div>
 <div class="line"></div>
 <div class="line">sample1: sample1.c</div>
 <div class="line">        $(NCC) -o $@ $^</div>
 <div class="line"></div>
+<div class="line">sample2: sample2.c</div>
+<div class="line">        $(NCC) -o $@ $^</div>
+<div class="line"></div>
 <div class="line">libvhhello.so: libvhhello.c</div>
 <div class="line">        $(GCC) -o $@ $^ -fpic -shared</div>
 <div class="line"></div>
-<div class="line">libvhhello_f.so: libvhhello.f90</div>
+<div class="line">libvhhello_f.so: libvhhello.f</div>
 <div class="line">        $(GFORT) -o $@ $^ -fpic -shared</div>
 <div class="line"></div>
-<div class="line">sample2: sample2.c</div>
+<div class="line">sample3: sample3.c</div>
 <div class="line">        $(NCC) -o $@ $^</div>
 <div class="line"></div>
 <div class="line">libdatatransfer.so: libdatatransfer.c</div>

@@ -4,7 +4,7 @@
 <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.5"/>
-<title>libsysve: vhcall/sample1.c</title>
+<title>libsysve: vhcall/sample3.c</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -46,12 +46,12 @@
   </div>
 </div>
 <script type="text/javascript">
-$(document).ready(function(){initNavTree('vhcall_2sample1_8c-example.html','');});
+$(document).ready(function(){initNavTree('vhcall_2sample3_8c-example.html','');});
 </script>
 <div id="doc-content">
 <div class="header">
   <div class="headertitle">
-<div class="title">vhcall/sample1.c</div>  </div>
+<div class="title">vhcall/sample3.c</div>  </div>
 </div><!--header-->
 <div class="contents">
 <div class="fragment"><div class="line"><span class="preprocessor">#include &lt;stddef.h&gt;</span></div>
@@ -59,26 +59,21 @@ $(document).ready(function(){initNavTree('vhcall_2sample1_8c-example.html','');}
 <div class="line"><span class="preprocessor">#include &lt;libvhcall.h&gt;</span></div>
 <div class="line"><span class="preprocessor">#include &lt;stdio.h&gt;</span></div>
 <div class="line"></div>
-<div class="line"><span class="preprocessor">#define MAXLEN 100</span></div>
-<div class="line"><span class="preprocessor"></span><span class="keyword">const</span> <span class="keywordtype">char</span> *msg = <span class="stringliteral">&quot;Hello, This is VE&quot;</span>;</div>
-<div class="line"></div>
 <div class="line"><span class="keywordtype">int</span> main() {</div>
 <div class="line">        <span class="keywordtype">int</span> ret=1;</div>
-<div class="line">        uint64_t len = MAXLEN;</div>
-<div class="line">        <span class="keywordtype">char</span> buf[MAXLEN];</div>
 <div class="line">        int64_t symid;</div>
 <div class="line">        vhcall_handle handle;</div>
 <div class="line">        vhcall_args *ca;</div>
 <div class="line">        uint64_t retval = -1;</div>
-<div class="line">        <span class="comment">/* Load VH C library */</span></div>
-<div class="line">        printf(<span class="stringliteral">&quot;Test for C library\n&quot;</span>);</div>
-<div class="line">        handle = <a name="a0"></a><a class="code" href="group__vhcall.html#gaad93c08018928af1b35b94bb110b9c2b" title="Load a VH library. ">vhcall_install</a>(<span class="stringliteral">&quot;./libvhhello.so&quot;</span>);</div>
+<div class="line">        uint64_t data = 0xdeadbeefbaadcafe;</div>
+<div class="line"></div>
+<div class="line">        handle = <a name="a0"></a><a class="code" href="group__vhcall.html#gaad93c08018928af1b35b94bb110b9c2b" title="Load a VH library. ">vhcall_install</a>(<span class="stringliteral">&quot;./libdatatransfer.so&quot;</span>);</div>
 <div class="line">        <span class="keywordflow">if</span> (handle == (vhcall_handle)-1) {</div>
 <div class="line">                perror(<span class="stringliteral">&quot;vhcall_install&quot;</span>);</div>
 <div class="line">                <span class="keywordflow">goto</span> ret;</div>
 <div class="line">        }</div>
-<div class="line">        <span class="comment">/* Find VH C library function */</span></div>
-<div class="line">        symid  = <a name="a1"></a><a class="code" href="group__vhcall.html#ga7d7ad2f1f6ee25c73ca8ec99672ec319" title="Find a symbol in VH library. ">vhcall_find</a>(handle, <span class="stringliteral">&quot;hello&quot;</span>);</div>
+<div class="line"></div>
+<div class="line">        symid  = <a name="a1"></a><a class="code" href="group__vhcall.html#ga7d7ad2f1f6ee25c73ca8ec99672ec319" title="Find a symbol in VH library. ">vhcall_find</a>(handle, <span class="stringliteral">&quot;func&quot;</span>);</div>
 <div class="line">        <span class="keywordflow">if</span> (symid == -1 ) {</div>
 <div class="line">                perror(<span class="stringliteral">&quot;vhcall_find&quot;</span>);</div>
 <div class="line">                <span class="keywordflow">goto</span> ret2;</div>
@@ -89,46 +84,36 @@ $(document).ready(function(){initNavTree('vhcall_2sample1_8c-example.html','');}
 <div class="line">                perror(<span class="stringliteral">&quot;vhcall_args_alloc&quot;</span>);</div>
 <div class="line">                <span class="keywordflow">goto</span> ret2;</div>
 <div class="line">        }</div>
-<div class="line">        <span class="comment">/* Set arguments */</span></div>
-<div class="line">        memcpy(buf, msg, strlen(msg));</div>
-<div class="line">        memset(buf+strlen(msg)+1, <span class="charliteral">&#39;\0&#39;</span>, MAXLEN-strlen(msg));</div>
+<div class="line">        <span class="comment">/* Set each arguments */</span></div>
+<div class="line">        printf(<span class="stringliteral">&quot;[VE] addr:%p, data:%lx\n&quot;</span>, &amp;data, data);</div>
 <div class="line">        <span class="comment">/* 1st */</span></div>
-<div class="line">        ret = <a name="a3"></a><a class="code" href="group__vhcall.html#ga74a1e8578f179368d3c1ee80b8c34701" title="Set VH function argument of pointer type. ">vhcall_args_set_pointer</a>(ca, VHCALL_INTENT_INOUT, 0, buf, MAXLEN);</div>
+<div class="line">        ret = <a name="a3"></a><a class="code" href="group__vhcall.html#ga14f045895ec1a0e81c9219a2f4e65fd5" title="Set VH function argument of pointer to VEOS handle. ">vhcall_args_set_veoshandle</a>(ca, 0);</div>
 <div class="line">        <span class="keywordflow">if</span> (ret) {</div>
-<div class="line">                perror(<span class="stringliteral">&quot;vhcall_args_set_pointer&quot;</span>);</div>
+<div class="line">                perror(<span class="stringliteral">&quot;vhcall_args_set_veoshandle&quot;</span>);</div>
 <div class="line">                <span class="keywordflow">goto</span> ret3;</div>
 <div class="line">        }</div>
 <div class="line">        <span class="comment">/* 2nd */</span></div>
-<div class="line">        ret = <a name="a4"></a><a class="code" href="group__vhcall.html#ga7e3bfd5c4f7f561a7d31164c1b7e3d42" title="Set a 32-bit signed integer argument. ">vhcall_args_set_i32</a>(ca, 1, -1);</div>
+<div class="line">        ret = <a name="a4"></a><a class="code" href="group__vhcall.html#ga83b08401bfca1956a7c7a1024c112f93" title="Set a 64-bit unsigned integer argument. ">vhcall_args_set_u64</a>(ca, 1, (uint64_t)&amp;data);</div>
 <div class="line">        <span class="keywordflow">if</span> (ret) {</div>
-<div class="line">                perror(<span class="stringliteral">&quot;vhcall_args_set_i32&quot;</span>);</div>
+<div class="line">                perror(<span class="stringliteral">&quot;vhcall_args_set_u64&quot;</span>);</div>
 <div class="line">                <span class="keywordflow">goto</span> ret3;</div>
 <div class="line">        }</div>
-<div class="line">        <span class="comment">/* 3rd */</span></div>
-<div class="line">        ret = <a name="a5"></a><a class="code" href="group__vhcall.html#gae73aeadaa15fd7ef9e713d31e130790e" title="Set a single precision floating point number argument. ">vhcall_args_set_float</a>(ca, 2, -1.111);</div>
-<div class="line">        <span class="keywordflow">if</span> (ret) {</div>
-<div class="line">                perror(<span class="stringliteral">&quot;vhcall_args_set_float&quot;</span>);</div>
-<div class="line">                <span class="keywordflow">goto</span> ret3;</div>
-<div class="line">        }</div>
-<div class="line">        <span class="comment">/* Invoke VH C library function */</span></div>
-<div class="line">        printf(<span class="stringliteral">&quot;[VE] buffer: %s\n&quot;</span>, buf);</div>
-<div class="line">        ret = <a name="a6"></a><a class="code" href="group__vhcall.html#ga565bc39067c16da5db9febca694f515e" title="Invoke a function in VH library with passing arguments. ">vhcall_invoke_with_args</a>(symid, ca, &amp;retval);</div>
+<div class="line">        <span class="comment">/* Invoke VH library function */</span></div>
+<div class="line">        ret = <a name="a5"></a><a class="code" href="group__vhcall.html#ga565bc39067c16da5db9febca694f515e" title="Invoke a function in VH library with passing arguments. ">vhcall_invoke_with_args</a>(symid, ca, &amp;retval);</div>
 <div class="line">        <span class="keywordflow">if</span> (ret) {</div>
 <div class="line">                perror(<span class="stringliteral">&quot;vhcall_invoke_with_args&quot;</span>);</div>
 <div class="line">                <span class="keywordflow">goto</span> ret3;</div>
 <div class="line">        }</div>
-<div class="line">        printf(<span class="stringliteral">&quot;[VE] buffer: %s\n&quot;</span>, buf);</div>
-<div class="line">        <span class="comment">/* Check return value of function */</span></div>
 <div class="line">        <span class="keywordflow">if</span> (retval) {</div>
 <div class="line">                printf(<span class="stringliteral">&quot;VH function returns unexpected value(%ld)\n&quot;</span>, retval);</div>
 <div class="line">                <span class="keywordflow">goto</span> ret3;</div>
 <div class="line">        }</div>
+<div class="line">        printf(<span class="stringliteral">&quot;[VE] addr:%p, data:%lx\n&quot;</span>, &amp;data, data);</div>
+<div class="line">        ret = 0;</div>
 <div class="line">ret3:</div>
-<div class="line">        <span class="comment">/* Free arguments object */</span></div>
-<div class="line">        <a name="a7"></a><a class="code" href="group__vhcall.html#ga5a6eb56699a9da0b744e4c9a1da8d85e" title="Free VHCall arguments object. ">vhcall_args_free</a>(ca);</div>
+<div class="line">        <a name="a6"></a><a class="code" href="group__vhcall.html#ga5a6eb56699a9da0b744e4c9a1da8d85e" title="Free VHCall arguments object. ">vhcall_args_free</a>(ca);</div>
 <div class="line">ret2:</div>
-<div class="line">        <span class="comment">/* Unload VH library */</span></div>
-<div class="line">        <span class="keywordflow">if</span> (<a name="a8"></a><a class="code" href="group__vhcall.html#ga14e45d064daecd926d1719b05fe1936d" title="Unload a VH library. ">vhcall_uninstall</a>(handle))</div>
+<div class="line">        <span class="keywordflow">if</span> (<a name="a7"></a><a class="code" href="group__vhcall.html#ga14e45d064daecd926d1719b05fe1936d" title="Unload a VH library. ">vhcall_uninstall</a>(handle))</div>
 <div class="line">                perror(<span class="stringliteral">&quot;vhcall_uninstall&quot;</span>);</div>
 <div class="line">ret:</div>
 <div class="line">        <span class="keywordflow">return</span> ret;</div>

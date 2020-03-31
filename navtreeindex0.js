@@ -66,5 +66,6 @@ var NAVTREEINDEX0 =
 "vhcall_2libvhhello_8c-example.html":[6,5],
 "vhcall_2libvhhello_8f90-example.html":[6,6],
 "vhcall_2sample1_8c-example.html":[6,8],
-"vhcall_2sample2_8c-example.html":[6,9]
+"vhcall_2sample2_8c-example.html":[6,9],
+"vhcall_2sample3_8c-example.html":[6,10]
 };

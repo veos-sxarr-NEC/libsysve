@@ -9,5 +9,6 @@ var examples =
     [ "vhcall/libvhhello.f90", "vhcall_2libvhhello_8f90-example.html", null ],
     [ "vhcall/Makefile", "vhcall_2Makefile-example.html", null ],
     [ "vhcall/sample1.c", "vhcall_2sample1_8c-example.html", null ],
-    [ "vhcall/sample2.c", "vhcall_2sample2_8c-example.html", null ]
+    [ "vhcall/sample2.c", "vhcall_2sample2_8c-example.html", null ],
+    [ "vhcall/sample3.c", "vhcall_2sample3_8c-example.html", null ]
 ];
