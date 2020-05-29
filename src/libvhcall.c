@@ -155,7 +155,7 @@ static vhcall_args *vhcall_args_append(vhcall_args *list_head, int num)
  *
  * @param ca vhcall_args
  * @param inout intent of argument
- * @param argnum the argnum-th argument
+ * @param argnum the argnum-th argument (counting from 0)
  * @param val pointer to value to be set
  * @param size size of value
  * @param class type of value
@@ -198,7 +198,7 @@ ret:
  * @brief Set a 8-bit signed integer argument
  *
  * @param ca vhcall_args
- * @param argnum the argnum-th argument
+ * @param argnum the argnum-th argument (counting from 0)
  * @param val value to be set
  * @return zero upon success; negative upon failure and following errno is set.
  *         - EINVAL ca is NULL or argnum is negative.
@@ -213,7 +213,7 @@ int vhcall_args_set_i8(vhcall_args *ca, int argnum, int8_t val) {
  * @brief Set a 8-bit unsigned integer argument
  *
  * @param ca vhcall_args
- * @param argnum the argnum-th argument
+ * @param argnum the argnum-th argument (counting from 0)
  * @param val value to be set
  * @return zero upon success; negative upon failure and following errno is set.
  * 	   - EINVAL ca is NULL or argnum is negative.
@@ -228,7 +228,7 @@ int vhcall_args_set_u8(vhcall_args *ca, int argnum, uint8_t val) {
  * @brief Set a 16-bit signed integer argument
  *
  * @param ca vhcall_args
- * @param argnum the argnum-th argument
+ * @param argnum the argnum-th argument (counting from 0)
  * @param val value to be set
  * @return zero upon success; negative upon failure and following errno is set.
  * 	   - EINVAL ca is NULL or argnum is negative.
@@ -243,7 +243,7 @@ int vhcall_args_set_i16(vhcall_args *ca, int argnum, int16_t val) {
  * @brief Set a 16-bit unsigned integer argument
  *
  * @param ca vhcall_arg
- * @param argnum the argnum-th argument
+ * @param argnum the argnum-th argument (counting from 0)
  * @param val value to be set
  * @return zero upon success; negative upon failure and following errno is set.
  *         - EINVAL ca is NULL or argnum is negative.
@@ -258,7 +258,7 @@ int vhcall_args_set_u16(vhcall_args *ca, int argnum, uint16_t val) {
  * @brief Set a 32-bit signed integer argument
  *
  * @param ca vhcall_arg
- * @param argnum the argnum-th argument
+ * @param argnum the argnum-th argument (counting from 0)
  * @param val value to be set
  * @return zero upon success; negative upon failure and following errno is set.
  * 	   - EINVAL ca is NULL or argnum is negative.
@@ -273,7 +273,7 @@ int vhcall_args_set_i32(vhcall_args *ca, int argnum, int32_t val) {
  * @brief Set a 32-bit unsigned integer argument
  *
  * @param ca vhcall_arg
- * @param argnum the argnum-th argument
+ * @param argnum the argnum-th argument (counting from 0)
  * @param val value to be set
  * @return zero upon success; negative upon failure and following errno is set.
  * 	   - EINVAL ca is NULL or argnum is negative.
@@ -288,7 +288,7 @@ int vhcall_args_set_u32(vhcall_args *ca, int argnum, uint32_t val) {
  *@brief Set a 64-bit signed integer argument
  *
  * @param ca vhcall_arg
- * @param argnum the argnum-th argument
+ * @param argnum the argnum-th argument (counting from 0)
  * @param val value to be set
  * @return zero upon success; negative upon failure and following errno is set.
  * 	   - EINVAL ca is NULL or argnum is negative.
@@ -303,7 +303,7 @@ int vhcall_args_set_i64(vhcall_args *ca, int argnum, int64_t val) {
  * @brief Set a 64-bit unsigned integer argument
  *
  * @param ca vhcall_args
- * @param argnum the argnum-th argument
+ * @param argnum the argnum-th argument (counting from 0)
  * @param val value to be set
  * @return zero upon success; negative upon failure and following errno is set.
  * 	   - EINVAL ca is NULL or argnum is negative.
@@ -318,7 +318,7 @@ int vhcall_args_set_u64(vhcall_args *ca, int argnum, uint64_t val) {
  * @brief Set a single precision floating point number argument
  *
  * @param ca vhcall_args
- * @param argnum the argnum-th argument
+ * @param argnum the argnum-th argument (counting from 0)
  * @param val value to be set
  * @return zero upon success; negative upon failure and following errno is set.
  * 	   - EINVAL ca is NULL or argnum is negative.
@@ -333,7 +333,7 @@ int vhcall_args_set_float(vhcall_args *ca, int argnum, float val) {
  * @brief Set a double precision floating point number argument
  *
  * @param ca vhcall_args
- * @param argnum the argnum-th argument
+ * @param argnum the argnum-th argument (counting from 0)
  * @param val value to be set
  * @return zero upon success; negative upon failure and following errno is set.
  * 	   - EINVAL ca is NULL or argnum is negative.
@@ -348,7 +348,7 @@ int vhcall_args_set_double(vhcall_args *ca, int argnum, double val) {
  * @brief Set a single precision floating point complex object argument
  *
  * @param ca vhcall_args
- * @param argnum the argnum-th argument
+ * @param argnum the argnum-th argument (counting from 0)
  * @param val value to be set
  * @return zero upon success; negative upon failure and following errno is set.
  * 	   - EINVAL ca is NULL or argnum is negative.
@@ -364,7 +364,7 @@ int vhcall_args_set_complex_float(vhcall_args *ca, int argnum,
  * @brief Set a double precision floating point complex object argument
  *
  * @param ca vhcall_args
- * @param argnum the argnum-th argument
+ * @param argnum the argnum-th argument (counting from 0)
  * @param val value to be set
  * @return zero upon success; negative upon failure and errno is set.
  * 	   - EINVAL ca is NULL or argnum is negative.
@@ -382,7 +382,7 @@ int vhcall_args_set_complex_double(vhcall_args *ca, int argnum,
  * @param ca pointer to vhcall_args object
  * @param inout intent of argument. VHCALL_INTENT_IN, VHCALL_INTENT_OUT,
  *        VHCALL_INTENT_INOUT are supported
- * @param argnum argument number that is being set
+ * @param argnum the argnum-th argument (counting from 0)
  * @param[inout] buff char pointer to be set as argument
  * @param len length of buffer that is specified as argument
  * @retval  0 argnum is successfully set
@@ -409,7 +409,7 @@ int vhcall_args_set_pointer(vhcall_args *ca,
  * @note Please include libvepseudo.h to use VEOS handle in VH function.
  *
  * @param ca pointer to vhcall_args object
- * @param argnum argument number that is being set
+ * @param argnum the argnum-th argument (counting from 0)
  *
  * @retval  0 argumen is successfully set.
  * @retval -1 an error occurred and following errno is set.

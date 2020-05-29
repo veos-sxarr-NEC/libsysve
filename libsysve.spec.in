@@ -42,7 +42,11 @@ libraries in libsysve package.
 %define _prefix @prefix@
 %define _libdir @prefix@/lib
 %define __strip @ve_prefix@/bin/nstrip
-%global __debug_install_post @ve_prefix@/libexec/find-debuginfo.sh %{nil}
+%if 0%{?rhel} == 8
+%global __debug_install_post /opt/nec/ve/libexec/find-debuginfo.sh  -o debugsourcefiles.list %{nil}
+%else
+%global __debug_install_post /opt/nec/ve/libexec/find-debuginfo.sh  %{nil}
+%endif
 
 %prep
 %{__rm} -rf ${RPM_BUILD_ROOT}
