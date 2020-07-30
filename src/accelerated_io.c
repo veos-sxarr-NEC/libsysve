@@ -107,6 +107,7 @@
 
 #define ENV_KEY_PDMA "VE_PDMA_IO"
 #define ENV_KEY_ATOMIC "VE_ATOMIC_IO"
+#define ENV_KEY_VE_ACC_IO "VE_ACC_IO"
 
 #define VE_BUFF_SIZE (8*1024*1024)
 
@@ -116,6 +117,9 @@
 #define SUCCESS 0
 #define FAIL -1
 #define NOBUF 1
+
+#define DEFAULT_CORE_NUM 8
+#define SIZE_BY_CORE 2
 
 typedef struct {
 	uint64_t vh_buff_and_flag;	/*!< VH buffer adress and bit flag */
@@ -276,6 +280,9 @@ static int ve_accelerated_io_pre(acc_io_info *io_info)
 	int vh_buff_num = 0;
 	int errno_bak = errno;
 	void *vh_buff;
+	char *ptr_env;
+	char *evn_ve_acc_io;
+	int ve_acc_io_value = 0;
 	ssize_t transfer_size = VE_BUFF_SIZE;
 	ssize_t read_out_size = 0;
 	char core_num_buff[CORE_NUM_BUFF_SIZE] = {'\0'};
@@ -300,14 +307,23 @@ static int ve_accelerated_io_pre(acc_io_info *io_info)
 		errno = errno_bak;
 		return FAIL;
 	}
-	if (0 == vh_resources.ve_core_num) {
+
+	evn_ve_acc_io = getenv(ENV_KEY_VE_ACC_IO);
+	if (evn_ve_acc_io != NULL) {
+		ve_acc_io_value = (int)strtol(evn_ve_acc_io, &ptr_env, 3);
+	}
+
+	if (ve_acc_io_value == SIZE_BY_CORE) {
 		if (FAIL == (int)ve_get_ve_info("num_of_core",
 					core_num_buff, CORE_NUM_BUFF_SIZE)) {
 			retval = FAIL;
 			goto error_unlock_vh;
 		}
 		vh_resources.ve_core_num = atoi(core_num_buff);
+	} else {
+		vh_resources.ve_core_num = DEFAULT_CORE_NUM;
 	}
+
 	/* When first IO request, check environment */
 	if ((0 == vh_resources.vehva[0])
 		&& (ACCELERATED_IO != ve_accelerated_io_chk_env_init_dma())) {

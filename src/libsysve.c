@@ -165,3 +165,20 @@ int ve_get_numa_node(unsigned *node)
 	ret = syscall(__NR_getcpu, NULL, node, NULL);
 	return ret;
 }
+
+/**
+ * @brief this functions returns VEOS pid managing this process.
+ *
+ * @retval pid of VEOS on success.
+ * @retval -1 is returned and errno is set on failure.
+ *
+ * @internal
+ *
+ * @author libsysve
+ **/
+int ve_get_veos_pid(void)
+{
+	int ret = 0;
+	ret = syscall(SYS_sysve, VE_SYSVE_GET_VEOS_PID);
+	return ret;
+}

@@ -37,5 +37,6 @@ ssize_t ve_get_ve_info(char *, char *, size_t);
 int ve_set_user_reg(uint64_t, uint64_t);
 int ve_get_fixed_vehva(uint64_t, uint64_t *);
 int ve_get_numa_node(unsigned *);
+int ve_get_veos_pid(void);
 
 #endif
