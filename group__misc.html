@@ -25,7 +25,7 @@
  <tr style="height: 56px;">
   <td style="padding-left: 0.5em;">
    <div id="projectname">libsysve
-   &#160;<span id="projectnumber">2.5.0</span>
+   &#160;<span id="projectnumber">2.6.0</span>
    </div>
   </td>
  </tr>
@@ -65,6 +65,9 @@ Functions</h2></td></tr>
 <tr class="memitem:ga94946aa87071fe5f1a58e1e89f45b415"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__misc.html#ga94946aa87071fe5f1a58e1e89f45b415">ve_get_numa_node</a> (unsigned *node)</td></tr>
 <tr class="memdesc:ga94946aa87071fe5f1a58e1e89f45b415"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function returns NUMA node number on which process is running.  <a href="#ga94946aa87071fe5f1a58e1e89f45b415">More...</a><br/></td></tr>
 <tr class="separator:ga94946aa87071fe5f1a58e1e89f45b415"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ga063d2a04b5a54a311affd9a5d3a727b6"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__misc.html#ga063d2a04b5a54a311affd9a5d3a727b6">ve_get_veos_pid</a> (void)</td></tr>
+<tr class="memdesc:ga063d2a04b5a54a311affd9a5d3a727b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">this functions returns VEOS pid managing this process.  <a href="#ga063d2a04b5a54a311affd9a5d3a727b6">More...</a><br/></td></tr>
+<tr class="separator:ga063d2a04b5a54a311affd9a5d3a727b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>Miscellaneous APIs. </p>
@@ -98,6 +101,31 @@ Functions</h2></td></tr>
 <li>EFAULT Argument points an invalid address. </li>
 </ul>
 </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a class="anchor" id="ga063d2a04b5a54a311affd9a5d3a727b6"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int ve_get_veos_pid </td>
+          <td>(</td>
+          <td class="paramtype">void&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>this functions returns VEOS pid managing this process. </p>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">pid</td><td>of VEOS on success. </td></tr>
+    <tr><td class="paramname">-1</td><td>is returned and errno is set on failure. </td></tr>
   </table>
   </dd>
 </dl>
