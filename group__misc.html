@@ -25,7 +25,7 @@
  <tr style="height: 56px;">
   <td style="padding-left: 0.5em;">
    <div id="projectname">libsysve
-   &#160;<span id="projectnumber">2.6.0</span>
+   &#160;<span id="projectnumber">2.7.1</span>
    </div>
   </td>
  </tr>
@@ -68,6 +68,9 @@ Functions</h2></td></tr>
 <tr class="memitem:ga063d2a04b5a54a311affd9a5d3a727b6"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__misc.html#ga063d2a04b5a54a311affd9a5d3a727b6">ve_get_veos_pid</a> (void)</td></tr>
 <tr class="memdesc:ga063d2a04b5a54a311affd9a5d3a727b6"><td class="mdescLeft">&#160;</td><td class="mdescRight">this functions returns VEOS pid managing this process.  <a href="#ga063d2a04b5a54a311affd9a5d3a727b6">More...</a><br/></td></tr>
 <tr class="separator:ga063d2a04b5a54a311affd9a5d3a727b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:gafa3b5ad1b969bac62ae0d509d58c32f6"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__misc.html#gafa3b5ad1b969bac62ae0d509d58c32f6">ve_get_nonswappable</a> (uint64_t *size)</td></tr>
+<tr class="memdesc:gafa3b5ad1b969bac62ae0d509d58c32f6"><td class="mdescLeft">&#160;</td><td class="mdescRight">This function gets maximum size of non-swappable memory of a caller process at that time.  <a href="#gafa3b5ad1b969bac62ae0d509d58c32f6">More...</a><br/></td></tr>
+<tr class="separator:gafa3b5ad1b969bac62ae0d509d58c32f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <p>Miscellaneous APIs. </p>
@@ -125,6 +128,37 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">pid</td><td>of VEOS on success. </td></tr>
+    <tr><td class="paramname">-1</td><td>is returned and errno is set on failure. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a class="anchor" id="gafa3b5ad1b969bac62ae0d509d58c32f6"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int ve_get_nonswappable </td>
+          <td>(</td>
+          <td class="paramtype">uint64_t *&#160;</td>
+          <td class="paramname"><em>size</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>This function gets maximum size of non-swappable memory of a caller process at that time. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[out]</td><td class="paramname">size</td><td>Pointer to the value in which maximum size in byte of non-swappable memory will be stored.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>on sucess. </td></tr>
     <tr><td class="paramname">-1</td><td>is returned and errno is set on failure. </td></tr>
   </table>
   </dd>
