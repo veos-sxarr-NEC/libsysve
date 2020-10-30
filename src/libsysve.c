@@ -182,3 +182,20 @@ int ve_get_veos_pid(void)
 	ret = syscall(SYS_sysve, VE_SYSVE_GET_VEOS_PID);
 	return ret;
 }
+
+/**
+ * @brief This function gets maximum size of non-swappable memory of a caller
+ *        process at that time.
+ *
+ * @param[out] size Pointer to the value in which maximum size in byte of
+ *                  non-swappable memory will be stored.
+ *
+ * @retval  0 on sucess.
+ * @retval  -1 is returned and errno is set on failure.
+ */
+int ve_get_nonswappable(uint64_t *size)
+{
+	int ret = 0;
+	ret = syscall(SYS_sysve, VE_SYSVE_GET_MNS, (uint64_t)size);
+	return ret;
+}
