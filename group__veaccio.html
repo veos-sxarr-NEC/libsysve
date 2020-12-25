@@ -69,22 +69,12 @@ $(document).ready(function(){initNavTree('group__veaccio.html','');});
 <li>writev</li>
 <li>pwritev</li>
 </ul>
-<p>This feature can be enabled when the below requirements are met.</p>
-<ul>
-<li>ScaTeFS is not installed<ul>
-<li>Please enable ScaTeFS direct I/O instead of accelerated I/O when ScaTeFS is installed</li>
-</ul>
-</li>
-<li>The kernel parameter "vm.nr_hugepages" is more than or equal to 256/per VE<ul>
-<li>Accelerated I/O uses huge pages as a buffer</li>
-<li>Please see sysctl(8) man page to set the kernel parameter</li>
-</ul>
-</li>
-</ul>
 <p>Please set environment variable VE_ACC_IO=1 to enable accelerated I/O.</p>
 <div class="fragment"><div class="line">$ export VE_ACC_IO=1</div>
 <div class="line">$ ./a.out</div>
-</div><!-- fragment --><dl class="section note"><dt>Note</dt><dd>Data is transferred every 8MB when accelerated I/O is enabled. So, read/write family system calls will not be atomic when the size is more than 8MB. </dd>
+</div><!-- fragment --> <dl class="section note"><dt>Note</dt><dd>A VE process uses 32 huge pages (64MB huge pages memory), when Accelerated I/O is enabled. </dd>
+<dd>
+Data is transferred every 8MB when accelerated I/O is enabled. So, read/write family system calls will not be atomic when the size is more than 8MB. </dd>
 <dd>
 No API is provided. </dd></dl>
 </div><!-- contents -->
