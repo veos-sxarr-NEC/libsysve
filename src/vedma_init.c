@@ -107,3 +107,16 @@ init(void)
 		exit(1);
 	}
 }
+
+int ve_dma_wait(ve_dma_handle_t *handle)
+{
+	int ret;
+	do {
+		ret = ve_dma_poll(handle);
+			if (ret >= 1) {
+			break;
+		}
+	} while (ret == -EAGAIN);
+	return ret;
+}
+

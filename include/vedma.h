@@ -115,6 +115,26 @@ int ve_dma_post(uint64_t dst, uint64_t src, int size, ve_dma_handle_t *handle);
 int ve_dma_poll(ve_dma_handle_t *handle);
 
 /**
+ * @brief This function iterates over the inquiry until it completes the asynchronous DMA,
+ *
+ * @note This function iterates over the inquiry the completion of DMA transfer request @n
+ *      issued by vedma_post(), until it completes the asynchronous DMA.
+ *
+ * @param[in] handle DMA transfer request issued by vedma_post()
+ *
+ * @retval 0 DMA completed normally
+ * @retval 1-65535 DMA failed @n
+ *      Exception value of DMA descriptor is returned. @n
+ *      DMA failed. The value is bitwise ORed combination of the values described below.
+ * -    0x8000: Memory protection exception
+ * -    0x4000: Missing page exception
+ * -    0x2000: Missing space exception
+ * -    0x1000: Memory access exception
+ * -    0x0800: I/O access exception
+ */
+int ve_dma_wait(ve_dma_handle_t *handle);
+
+/**
  * @brief This function issues synchronous DMA
  *
  * @note This function writes the DMA transfer request to the DMA descriptor table, and waits for finish.

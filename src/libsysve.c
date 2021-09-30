@@ -47,7 +47,41 @@
  * libsysve-devel package needs to be installed.
  *
  * \author NEC Corporation
- * \copyright 2017-2019. Licensed under the terms of the MIT license.
+ * \copyright 2017-2021. Licensed under the terms of the MIT license.
+ *
+ * @par Revision History
+ *   Revision,
+ *   Date,
+ *   Updates/Remarks
+ * @par
+ *   Rev.15,
+ *   Sep. 2021, @n
+ *   This revision covers libsysve-2.9.0 or later. @n
+ *   Improve performance of Acceleration I/O. @n
+ *   Add descriptions of API which returns the enabled/disabled of @n
+ *   Acceleration I/O.
+ * @par
+ *   Rev.14,
+ *   Mar. 2021, @n
+ *   This revision covers libsysve-2.7.6 or later. @n
+ *   Added "Revision History".
+ * @par
+ *   Rev.13,
+ *   Dec. 2020, @n
+ *   This revision covers libsysve-2.7.1 or later. @n
+ *   Update descriptions of how many hugepages accelerated I/O uses. @n
+ *   Remove the restriction on simultaneous use of accelerated I/O and @n
+ *   ScaTeFS direct I/O.
+ * @par
+ *   Rev.12,
+ *   Oct. 2020, @n
+ *   This revision covers libsysve-2.7.1 or later. @n
+ *   Add descriptions of API which gets maximum size of non-swappable memory.
+ * @par
+ *   Rev.11,
+ *   Jul. 2020, @n
+ *   This revision covers libsysve-2.6.2 or later. @n
+ *   Add descriptions of API which gets PID of VEOS.
  */
 /**
  * @brief This function gets the setting of PCI synchronization from PCISYAR and
@@ -199,3 +233,40 @@ int ve_get_nonswappable(uint64_t *size)
 	ret = syscall(SYS_sysve, VE_SYSVE_GET_MNS, (uint64_t)size);
 	return ret;
 }
+
+/**
+ * \ingroup veaccio
+ *
+ * Accelerated IO APIs.
+ * Please include "libsysve.h" in the source file.
+ *
+ */
+/*@{*/
+
+
+/**
+ * @brief This is a function of libsysve which checks accelerated IO is enabled
+ *        or disabled.
+ *
+ * @note Even if user sets the environment variable to enable accelerated IO,
+ *       accelerated IO might be disabled in case of no enough resource.
+ *       At that time, this function returns 0. @n
+ *       If a multi-thread program requests IOs in parallel,
+ *       all of them might not be handled as accelerated IOs.
+ *       Some of them might be handled as normal IOs due to lack of resources.
+ *       This function returns 1 if at least one IO is handled as an accelerated
+ *       IO.
+ *
+ * @retval   0  Accelerated IO is disabled.
+ * @retval   1  Accelerated IO is enabled.
+ * @retval  -1  On failure
+ */
+int
+ve_is_acc_io_enabled(void)
+{
+	int ret = -1;
+
+	ret = syscall(SYS_sysve, VE_SYSVE_IS_ACC_IO_ENABLED);
+	return ret;
+}
+

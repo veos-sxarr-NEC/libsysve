@@ -43,17 +43,6 @@
  * * writev
  * * pwritev
  * 
- * This feature can be enabled when the below requirements are met.
- * 
- * * ScaTeFS is not installed
- *    - Please enable ScaTeFS direct I/O instead of accelerated I/O
- *      when ScaTeFS is installed
- *
- * * The kernel parameter "vm.nr_hugepages" is more than or equal to
- *   256/per VE
- *    - Accelerated I/O uses huge pages as a buffer
- *    - Please see sysctl(8) man page to set the kernel parameter
- *
  * Please set environment variable VE_ACC_IO=1 to enable accelerated
  * I/O.
  *
@@ -61,12 +50,28 @@
  * $ export VE_ACC_IO=1
  * $ ./a.out
  * ~~~
- *
- * @note Data is transferred every 8MB when accelerated I/O is
+ * @note A VE process uses 32 huge pages (64MB huge pages memory),
+ *       when Accelerated I/O is enabled.
+ * @note Data is transferred every 4MB when accelerated I/O is
  *       enabled. So, read/write family system calls will not be
- *       atomic when the size is more than 8MB.
- * @note No API is provided.
+ *       atomic when the size is more than 4MB.
+ *
+ * Users can set the environment variable VE_ACC_IO_VERBOSE=1 to display
+ * whether accelerated IO is enabled or disabled to standard error when
+ * exit VE process.
+ * ~~~
+ * $ export VE_ACC_IO=1
+ * $ export VE_ACC_IO_VERBOSE=1
+ * $ ./a.out
+ *   Accelerated IO is enabled
+ *
+ * $ export -n VE_ACC_IO
+ * $ export VE_ACC_IO_VERBOSE=1
+ * $ ./a.out
+ *   Accelerated IO is disabled
+ * ~~~
  */
+/*@{*/
 
 #ifdef HAVE_IO_HOOK_H
 
@@ -114,6 +119,9 @@
 #define VE_BUFF_USING 1
 #define VE_BUFF_NOT_USING 0
 
+#define BUFF_NPARAS 2
+#define PARAS_SIZE VE_BUFF_SIZE/BUFF_NPARAS
+
 #define SUCCESS 0
 #define FAIL -1
 #define NOBUF 1
@@ -122,10 +130,10 @@
 #define SIZE_BY_CORE 2
 
 typedef struct {
-	uint64_t vh_buff_and_flag;	/*!< VH buffer adress and bit flag */
-	uint64_t ve_buff;	/*!< VE buffer */
-	uint64_t vh_vehva;	/*!< vehva of VH buffer */
-	uint64_t ve_vehva;	/*!< vehva of VE buffer */
+	uint64_t vh_buff_and_flag[BUFF_NPARAS];	/*!< VH buffer adress and bit flag */
+	uint64_t ve_buff[BUFF_NPARAS];	/*!< VE buffer */
+	uint64_t vh_vehva[BUFF_NPARAS];	/*!< vehva of VH buffer */
+	uint64_t ve_vehva[BUFF_NPARAS];	/*!< vehva of VE buffer */
 	int vh_mask;	/*!< mask for get flag status of VH buffer */
 } acc_io_info;
 
@@ -227,9 +235,10 @@ static int ve_accelerated_io_getinfo(void)
 		ve_resources.local_vehva = local_vehva;
 
 		for (i = 0; i < vh_resources.ve_core_num; i++) {
-			vh_resources.vh_buff[i]	= vhva + VE_BUFF_SIZE * i;
+			vh_resources.vh_buff[i]	= (void *)((uint64_t)vhva
+							+ VE_BUFF_SIZE * i);
 			vh_resources.vehva[i] = vehva + VE_BUFF_SIZE * i;
-	        }
+		}
 		return SUCCESS;
 	}
 
@@ -351,16 +360,25 @@ static int ve_accelerated_io_pre(acc_io_info *io_info)
 		}
 	}
 	vh_buff = vh_resources.vh_buff[vh_buff_num];
-	io_info->ve_buff = (uint64_t)&ve_resources.ve_io_buff[0];
-	io_info->vh_vehva = vh_resources.vehva[vh_buff_num];
-	io_info->ve_vehva = ve_resources.local_vehva;
+	
+	for (i = 0; i < BUFF_NPARAS; i++) {
+		io_info->ve_buff[i] = (uint64_t)&ve_resources.ve_io_buff[0]
+							+ PARAS_SIZE * i;
+		io_info->vh_vehva[i] = vh_resources.vehva[vh_buff_num]
+							+ PARAS_SIZE * i;
+		io_info->ve_vehva[i] = ve_resources.local_vehva
+							+ PARAS_SIZE * i;
+	}
 
 	if (pthread_spin_unlock(&vh_resources.lock) != 0) {
 		abort();
 	}
 	/* Set accelerated io bit flag to VHVA */
-	io_info->vh_buff_and_flag
-		= ((uint64_t)vh_buff) | VE_ACCELERATED_IO_FLAG;
+	for (i = 0; i < BUFF_NPARAS; i++) {
+		io_info->vh_buff_and_flag[i]
+			= (((uint64_t)vh_buff) | VE_ACCELERATED_IO_FLAG)
+							+ PARAS_SIZE * i;
+	}
 	return SUCCESS;
 
 error_unlock_vh:
@@ -416,6 +434,33 @@ static void ve_accelerated_io_free_io_hook(void)
 }
 
 /**
+ * @brief The continued processing after DMA transmission is processed for each
+ * "8MB / BUFF_NPARAS".
+ * This function finds the min number in these continued processing that has
+ * not been executed yet.This function ,
+ *
+ * @param[in] point of array
+ *
+ * @retval the element number of array.
+ */
+static inline int __ve_find_min_posted(uint64_t *posted)
+{
+	int k;
+	int min_k = 0;
+	uint64_t min_v = UINT64_MAX;
+	for (k = 0; k < BUFF_NPARAS; k++) {
+		if (posted[k] == -1) {
+			continue;
+		}
+		if (posted[k] < min_v) {
+			min_v = posted[k];
+			min_k = k;
+		}
+	}
+	return min_k;
+}
+
+/**
  * @brief This function starts accelerated read or pread.
  *
  * @param[in] The number of system call
@@ -429,15 +474,19 @@ static void ve_accelerated_io_free_io_hook(void)
 static ssize_t ve_accelerated_io_read_pread(int syscall_num, int fd, void *buf,
 					size_t count, off_t ofs)
 {
-	int i;
+	int i,j,k;
 	int ret = 0;
+	int dma_ret = 0;
 	int errno_bak = 0;
+	uint64_t posted[BUFF_NPARAS];
 	uint64_t read_num = 0;
+	int min_k = 0;
+	int data_err = 0;
 	acc_io_info io_info;
-	ssize_t transfer_size = VE_BUFF_SIZE;
-	ssize_t read_out_size = 0;
+	ssize_t transfer_size = PARAS_SIZE;
+	ssize_t read_out_size[BUFF_NPARAS];
 	ssize_t exit_result = 0;
-	ve_dma_handle_t vedma_handle;
+	ve_dma_handle_t vedma_handle[BUFF_NPARAS];
 
 	if (0 == count) {
 		SYSCALL_CANCEL(exit_result, syscall_num, fd, buf, count, ofs);
@@ -460,50 +509,115 @@ static ssize_t ve_accelerated_io_read_pread(int syscall_num, int fd, void *buf,
 		return exit_result;
 	}
 
+	memset(posted, -1, sizeof(posted));
 	read_num = (count + transfer_size - 1)/ transfer_size;
 	for (i = 0; i < read_num; i++) {
 		if (i == 1) {
-			io_info.vh_buff_and_flag
-				= io_info.vh_buff_and_flag
-					| VE_SECOND_SYS_CALL_FLAG;
+			for (j = 0; j < BUFF_NPARAS; j++) {
+				io_info.vh_buff_and_flag[j]
+					= io_info.vh_buff_and_flag[j]
+						| VE_SECOND_SYS_CALL_FLAG;
+			}
 		}
 		if (i == read_num - 1) {
 			transfer_size = count - transfer_size * i;
 		}
 
-		/* Call read syscall */
-		read_out_size = syscall(syscall_num, fd,
-				io_info.vh_buff_and_flag, transfer_size, ofs);
-		if (FAIL == read_out_size) {
+		/* If not last 8MB */
+		j = i % BUFF_NPARAS;
+		if (i >= BUFF_NPARAS) {
+			/* Wait DMA */
+			dma_ret = ve_dma_wait(&vedma_handle[j]);
+			if (dma_ret >= 1) {
+				exit_result = FAIL;
+				errno_bak = EIO;
+				/* Data cannot be processed correctly
+				 * because "ve_dma_wait()" is failed,
+				 * but "ve_dma_wait()" of other "ve_dma_post()"
+				 * are need.
+				 */
+				data_err = 1;
+				posted[j] = -1;
+				break;
+			}
+			/* Copy data from ve buffer to user buffer */
+			__libsysve_vec_memcpy(buf,
+					(void *)((uint64_t)io_info.ve_buff[j]),
+							read_out_size[j]);
+			buf = (void *)((uint64_t)buf + read_out_size[j]);
+			exit_result += read_out_size[j];
+		}
+
+		/* Execute syscall call and data transfer in 1 set
+		 * and BUFF_NPARAS sets in parallel
+		 */
+		/* Call syscall */
+		read_out_size[j] = syscall(syscall_num, fd,
+				io_info.vh_buff_and_flag[j], transfer_size, ofs);
+		if (FAIL == read_out_size[j]) {
 			if (0 == i) {
 				errno_bak = errno;
-				exit_result = read_out_size;
+				exit_result = read_out_size[j];
 			}
 			errno = 0;
+			posted[j] = -1;
 			break;
-		} else if (0 == read_out_size) {
+		} else if (0 == read_out_size[j]) {
+			posted[j] = -1;
 			break;
 		}
-		exit_result = exit_result + read_out_size;
 		/* Transfer data from VH buffer to VE buffer by VE DMA */
-		ret = ve_dma_post_wait(io_info.ve_vehva, io_info.vh_vehva,
-					GET_DMA_SIZE(read_out_size));
+		ret = ve_dma_post(io_info.ve_vehva[j], io_info.vh_vehva[j],
+					GET_DMA_SIZE(read_out_size[j]),
+					&vedma_handle[j]);
 		if (SUCCESS != ret) {
 			exit_result = FAIL;
 			errno_bak = EIO;
-			goto hndl_return;
+			ofs = ofs + transfer_size;
+			posted[j] = -1;
+			data_err = 1;
+			break;
 		}
-		/* Copy data from VE buffer to user buffer */
-		__libsysve_vec_memcpy(buf, (void *)io_info.ve_buff,
-					read_out_size);
 
-		buf = buf + transfer_size;
-		ofs = ofs + transfer_size;
-		if (transfer_size > read_out_size) {
+		ofs = ofs + read_out_size[j];
+		posted[j] = i;
+		if (transfer_size > read_out_size[j]) {
 			break;
 		}
 	}
-hndl_return:
+
+	/* Last 8MB */
+	min_k =  __ve_find_min_posted(posted);
+	for (k = 0; k < BUFF_NPARAS; k++) {
+		i = posted[(min_k + k) % BUFF_NPARAS];
+
+		if (i == -1) {
+			continue;
+		}
+		j = i % BUFF_NPARAS;
+		/* Wait DMA */
+		dma_ret = ve_dma_wait(&vedma_handle[j]);
+		if (dma_ret >= 1) {
+			exit_result = FAIL;
+			errno_bak = EIO;
+			/* Data cannot be processed correctly
+ 			 * because "ve_dma_wait()" is failed,
+			 * but "ve_dma_wait()" of other "ve_dma_post()"
+			 * are need.
+			 */
+			data_err = 1;
+		}
+		if (!data_err) {
+		/* Copy data from ve buffer to user buffer */
+			__libsysve_vec_memcpy(buf,
+					(void *)((uint64_t)io_info.ve_buff[j]),
+							read_out_size[j]);
+
+			buf = (void *)((uint64_t)buf + read_out_size[j]);
+			exit_result += read_out_size[j];
+		}
+	}
+
 	ve_accelerated_io_post(io_info.vh_mask);
 	if (0 != errno_bak) {
 		errno = errno_bak;
@@ -538,7 +652,7 @@ static ssize_t ve_accelerated_io_read(int fd, void *buf, size_t count)
 static ssize_t ve_accelerated_io_pread(int fd, void *buf, size_t count,
 					off_t ofs)
 {
-        return ve_accelerated_io_read_pread(SYS_pread64, fd, buf, count, ofs);
+	return ve_accelerated_io_read_pread(SYS_pread64, fd, buf, count, ofs);
 }
 
 /**
@@ -555,14 +669,18 @@ static ssize_t ve_accelerated_io_pread(int fd, void *buf, size_t count,
 static ssize_t ve_accelerated_io_readv_preadv(int syscall_num, int fd,
 				const struct iovec *iov, int count, off_t ofs)
 {
-	int i, n;
+	int i,j,k,n;
 	int ret = 0;
+	int dma_ret = 0;
 	int errno_bak = 0;
+	uint64_t posted[BUFF_NPARAS];
 	uint64_t read_num = 0;
+	int min_k = 0;
+	int data_err = 0;
 	acc_io_info io_info;
 	ssize_t total_size = 0;
-	ssize_t transfer_size = VE_BUFF_SIZE;
-	ssize_t read_out_size = 0;
+	ssize_t transfer_size = PARAS_SIZE;
+	ssize_t read_out_size[BUFF_NPARAS];
 	ssize_t exit_result = 0;
 	int read_syscall_type = SYS_read;
 
@@ -572,7 +690,7 @@ static ssize_t ve_accelerated_io_readv_preadv(int syscall_num, int fd,
 	ssize_t ve_buff_size_less = 0;
 	ssize_t iov_copy_size = 0;
 	uint64_t source_buff;
-	ve_dma_handle_t vedma_handle;
+	ve_dma_handle_t vedma_handle[BUFF_NPARAS];
 
 	if (0 == count) {
 		SYSCALL_CANCEL(exit_result, syscall_num, fd, iov, count, ofs);
@@ -604,72 +722,164 @@ static ssize_t ve_accelerated_io_readv_preadv(int syscall_num, int fd,
 		total_size = total_size + iov[i].iov_len; 
 	}
 
+	memset(posted, -1, sizeof(posted));
 	read_num = (total_size + transfer_size - 1)/ transfer_size;
 	for (i = 0; i < read_num; i++) {
 		if (i == 1) {
-			io_info.vh_buff_and_flag
-				= io_info.vh_buff_and_flag
-					| VE_SECOND_SYS_CALL_FLAG;
+			for (j = 0; j < BUFF_NPARAS; j++) {
+				io_info.vh_buff_and_flag[j]
+					= io_info.vh_buff_and_flag[j]
+						| VE_SECOND_SYS_CALL_FLAG;
+			}
 		}
 		if (i == read_num - 1) {
 			transfer_size = total_size - transfer_size * i;
 		}
 
-		/* Call read syscall */
-		read_out_size = syscall(read_syscall_type, fd,
-				io_info.vh_buff_and_flag, transfer_size, ofs);
-		if (FAIL == read_out_size) {
-			if (0 == i) {
-				errno_bak = errno;
-				exit_result = read_out_size;
+		j = i % BUFF_NPARAS;
+		/* If not last 8MB */
+		if (i >= BUFF_NPARAS) {
+			/* Wait DMA */
+			dma_ret = ve_dma_wait(&vedma_handle[j]);
+			if (dma_ret >= 1) {
+				exit_result = FAIL;
+				errno_bak = EIO;
+				/* Data cannot be processed correctly
+				 * because "ve_dma_wait()" is failed,
+				 * but "ve_dma_wait()" of other "ve_dma_post()"
+				 * are need.
+				 */
+				data_err = 1;
+				posted[j] = -1;
+				break;
 			}
-			errno = 0;
-			break;
-		} else if (0 == read_out_size) {
-			break;
-		}
-		exit_result = exit_result + read_out_size;
-		/* Transfer data from VH buffer to VE buffer by VE DMA */
-		ret = ve_dma_post_wait(io_info.ve_vehva, io_info.vh_vehva,
-					GET_DMA_SIZE(read_out_size));
-		if (SUCCESS != ret) {
-			exit_result = FAIL;
-			errno_bak = EIO;
-			goto hndl_return;
-		}
-		/* Copy data from VE buffer to user buffer */
-		ve_buff_size_less = read_out_size;
-		source_buff = io_info.ve_buff;
-		for (n = next_iov_num; n < count; n++) {
-			iov_len_less = iov[n].iov_len - iov_len_done;
-			iov_copy_size = MIN (iov_len_less, ve_buff_size_less);
-			__libsysve_vec_memcpy((void *)iov[n].iov_base + iov_len_done,
-                                        (void *)source_buff, iov_copy_size);
-			if (0 >= (ve_buff_size_less - iov_copy_size)) {
+
+			ve_buff_size_less = read_out_size[j];
+			source_buff = io_info.ve_buff[j];
+			for (n = next_iov_num; n < count; n++) {
+				iov_len_less = iov[n].iov_len - iov_len_done;
+				iov_copy_size = MIN (iov_len_less, ve_buff_size_less);
+				__libsysve_vec_memcpy(
+					(void *)((uint64_t)iov[n].iov_base
+							+ iov_len_done),
+					(void *)source_buff, iov_copy_size);
+				if (0 >= (ve_buff_size_less - iov_copy_size)) {
 				/* We have copied All data from the VE buffer to
 				 * the user buffers.
 				*/
-				if (iov_len_less > ve_buff_size_less) {
-					iov_len_done = iov_len_done
-							+ ve_buff_size_less;
-					next_iov_num = n;
-				} else {
-					iov_len_done = 0;
-					next_iov_num = n + 1;
+					if (iov_len_less > ve_buff_size_less) {
+						iov_len_done = iov_len_done
+								+ ve_buff_size_less;
+						next_iov_num = n;
+					} else {
+						iov_len_done = 0;
+						next_iov_num = n + 1;
+					}
+					break;
 				}
-				break;
+				iov_len_done = 0;
+				ve_buff_size_less = ve_buff_size_less - iov_copy_size;
+				source_buff = source_buff + iov_copy_size;
 			}
-			iov_len_done = 0;
-			ve_buff_size_less = ve_buff_size_less - iov_copy_size;
-			source_buff = source_buff + iov_copy_size;
+			exit_result += read_out_size[j];
 		}
 
-		ofs = ofs + transfer_size;
-		if (transfer_size > read_out_size) {
+		/* Execute syscall call and data transfer in 1 set
+		 * and BUFF_NPARAS sets in parallel
+		 */
+		/* Call syscall */
+		read_out_size[j] = syscall(read_syscall_type, fd,
+				io_info.vh_buff_and_flag[j], transfer_size, ofs);
+		if (FAIL == read_out_size[j]) {
+			if (0 == i) {
+				errno_bak = errno;
+				exit_result = read_out_size[j];
+			}
+			errno = 0;
+			posted[j] = -1;
+			break;
+		} else if (0 == read_out_size[j]) {
+			posted[j] = -1;
+			break;
+		}
+		/* Transfer data from VH buffer to VE buffer by VE DMA */
+		ret = ve_dma_post(io_info.ve_vehva[j], io_info.vh_vehva[j],
+					GET_DMA_SIZE(read_out_size[j]),
+					&vedma_handle[j]);
+
+		if (SUCCESS != ret) {
+			exit_result = FAIL;
+			errno_bak = EIO;
+			ofs = ofs + transfer_size;
+			posted[j] = -1;
+			data_err = 1;
+			break;
+		}
+
+		ofs = ofs + read_out_size[j];
+		posted[j] = i;
+		if (transfer_size > read_out_size[j]) {
 			break;
 		}
 	}
-hndl_return:
+
+	/* Last 8MB */
+	min_k =  __ve_find_min_posted(posted);
+	for (k = 0; k < BUFF_NPARAS; k++) {
+		i = posted[(min_k + k) % BUFF_NPARAS];
+		if (i == -1) {
+			continue;
+		}
+		j = i % BUFF_NPARAS;
+
+		/* Wait DMA */
+		dma_ret = ve_dma_wait(&vedma_handle[j]);
+		if (dma_ret >= 1) {
+			exit_result = FAIL;
+			errno_bak = EIO;
+			/* Data cannot be processed correctly
+			 * because "ve_dma_wait()" is failed,
+			 * but "ve_dma_wait()" of other "ve_dma_post()"
+			 * are need.
+			 */
+			data_err = 1;
+		}
+
+		if (!data_err) {
+			ve_buff_size_less = read_out_size[j];
+			source_buff = io_info.ve_buff[j];
+			for (n = next_iov_num; n < count; n++) {
+				iov_len_less = iov[n].iov_len - iov_len_done;
+				iov_copy_size = MIN (iov_len_less,
+							ve_buff_size_less);
+				__libsysve_vec_memcpy(
+					(void *)((uint64_t)iov[n].iov_base
+								+ iov_len_done),
+							(void *)source_buff,
+							iov_copy_size);
+				if (0 >= (ve_buff_size_less - iov_copy_size)) {
+				/* We have copied All data from the VE buffer to
+				 * the user buffers.
+				 */
+					if (iov_len_less > ve_buff_size_less) {
+						iov_len_done = iov_len_done
+							+ ve_buff_size_less;
+						next_iov_num = n;
+					} else {
+						iov_len_done = 0;
+						next_iov_num = n + 1;
+					}
+					break;
+				}
+				iov_len_done = 0;
+				ve_buff_size_less = ve_buff_size_less
+							- iov_copy_size;
+				source_buff = source_buff + iov_copy_size;
+			}
+			exit_result += read_out_size[j];
+		}
+	}
+
 	ve_accelerated_io_post(io_info.vh_mask);
 	if (0 != errno_bak) {
 		errno = errno_bak;
@@ -689,7 +899,7 @@ hndl_return:
 static ssize_t ve_accelerated_io_readv(int fd, const struct iovec *iov,
 					int count)
 {
-        return ve_accelerated_io_readv_preadv(SYS_readv, fd, iov, count, 0);
+	return ve_accelerated_io_readv_preadv(SYS_readv, fd, iov, count, 0);
 }
 
 /**
@@ -723,15 +933,20 @@ static ssize_t ve_accelerated_io_write_pwrite(int syscall_num, int fd,
 						const void *buf, size_t count,
 						off_t ofs)
 {
-	int i;
+	int i,j,k;
 	int ret = 0;
+	int dma_ret = 0;
 	int errno_bak = 0;
+	uint64_t posted[BUFF_NPARAS];
 	uint64_t write_num = 0;
+	int min_k = 0;
+	int data_err = 0;
 	acc_io_info io_info;
-	ssize_t transfer_size = VE_BUFF_SIZE;
-	ssize_t write_in_size = 0;
+	ssize_t transfer_size = PARAS_SIZE;
+	ssize_t need_write_in_size[BUFF_NPARAS] = {0};
+	ssize_t write_in_size;
 	ssize_t exit_result = 0;
-	ve_dma_handle_t vedma_handle;
+	ve_dma_handle_t vedma_handle[BUFF_NPARAS];
 
 	if (0 == count) {
 		SYSCALL_CANCEL(exit_result, syscall_num, fd, buf, count, ofs);
@@ -744,7 +959,6 @@ static ssize_t ve_accelerated_io_write_pwrite(int syscall_num, int fd,
 	}
 	/* Pre processing of IO request */
 	ret = ve_accelerated_io_pre(&io_info);
-	
 	if (FAIL == ret) {
 		ve_accelerated_io_free_io_hook();
 		SYSCALL_CANCEL(exit_result, syscall_num, fd, buf, count, ofs);
@@ -754,52 +968,138 @@ static ssize_t ve_accelerated_io_write_pwrite(int syscall_num, int fd,
 		return exit_result;
 	}
 
+	memset(posted, -1, sizeof(posted));
 	write_num = (count + transfer_size - 1)/ transfer_size;
 	for (i = 0; i < write_num; i++) {
 		if (i == 1) {
-			io_info.vh_buff_and_flag
-				= io_info.vh_buff_and_flag
-					| VE_SECOND_SYS_CALL_FLAG;
+			for (j = 0; j < BUFF_NPARAS; j++) {
+				io_info.vh_buff_and_flag[j]
+					= io_info.vh_buff_and_flag[j]
+						| VE_SECOND_SYS_CALL_FLAG;
+			}
 		}
 		if (i == write_num - 1) {
 			transfer_size = count - transfer_size * i;
 		}
+		j = i % BUFF_NPARAS;
+		/* If not last 8MB */
+		if (i >= BUFF_NPARAS) {
+			/* Wait DMA */
+			dma_ret = ve_dma_wait(&vedma_handle[j]);
+			if (dma_ret >= 1) {
+				exit_result = FAIL;
+				errno_bak = EIO;
+				/* Data cannot be processed correctly
+				 * because "ve_dma_wait()" is failed,
+				 * but "ve_dma_wait()" of other "ve_dma_post()"
+				 * are need.
+				 */
+				data_err = 1;
+				posted[j] = -1;
+				break;
+			}
 
+			/* Call syscall */
+			write_in_size = syscall(syscall_num, fd,
+						io_info.vh_buff_and_flag[j],
+						PARAS_SIZE, ofs);
+			if (FAIL == write_in_size) {
+				if (0 == i) {
+					errno_bak = errno;
+					exit_result = write_in_size;
+				}
+				/* Data cannot be processed correctly
+				 * because "ve_dma_wait()" is failed,
+				 * but "ve_dma_wait()" of other "ve_dma_post()"
+				 * are need.
+				 */
+				errno = 0;
+				data_err = 1;
+				posted[j] = -1;
+				break;
+			} else if (0 == write_in_size) {
+				data_err = 1;
+				posted[j] = -1;
+				break;
+			}
+			exit_result += write_in_size;
+			ofs += write_in_size;
+			if (PARAS_SIZE > write_in_size) {
+				data_err = 1;
+				posted[j] = -1;
+				break;
+			}
+		}
+		/* Execute memory copy and data transfer in 1 set
+		 * and BUFF_NPARAS sets in parallel
+		 */
 		/* Copy data from user buffer to VE buffer */
-		__libsysve_vec_memcpy((void *)io_info.ve_buff, (void *)buf,
-					transfer_size);
+		__libsysve_vec_memcpy((void *)io_info.ve_buff[j],
+						(void *)buf, transfer_size);
 
 		/* Transfer data from VE buffer to VH buffer by VE DMA */
-		ret = ve_dma_post_wait(io_info.vh_vehva, io_info.ve_vehva,
-					GET_DMA_SIZE(transfer_size));
+		ret = ve_dma_post(io_info.vh_vehva[j], io_info.ve_vehva[j],
+					GET_DMA_SIZE(transfer_size),
+					&vedma_handle[j]);
 		if (SUCCESS != ret) {
 			exit_result = FAIL;
 			errno_bak = EIO;
-			goto hndl_return;
+			posted[j] = -1;
+			buf = (void *)((uint64_t)buf + transfer_size);
+			data_err = 1;
+			break;
 		}
+		buf = (void *)((uint64_t)buf + transfer_size);
+		posted[j] = i;
+		need_write_in_size[j] = transfer_size;
+	}
 
-		/* Call write syscall */
-		write_in_size = syscall(syscall_num, fd,
-					io_info.vh_buff_and_flag,
-					transfer_size, ofs);
-		if (FAIL == write_in_size) {
-			if (0 == i) {
-				errno_bak = errno;
-				exit_result = write_in_size;
-			}
-			errno = 0;
-			break;
-		} else if (0 == write_in_size) {
-			break;
+	/* Last 8MB */
+	min_k =  __ve_find_min_posted(posted);
+	for (k = 0; k < BUFF_NPARAS; k++) {
+		i = posted[(min_k + k) % BUFF_NPARAS];
+		if (i == -1) {
+			continue;
 		}
-		exit_result = exit_result + write_in_size;
-		buf = buf + transfer_size;
-		ofs = ofs + transfer_size;
-		if (transfer_size > write_in_size) {
-			break;
+		j = i % BUFF_NPARAS;
+		/* Wait DMA */
+		dma_ret = ve_dma_wait(&vedma_handle[j]);
+		if (dma_ret >= 1) {
+			exit_result = FAIL;
+			errno_bak = EIO;
+			/* Data cannot be processed correctly
+			 * because "ve_dma_wait()" is failed,
+			 * but "ve_dma_wait()" of other "ve_dma_post()"
+			 * are need.
+			 */
+			data_err = 1;
+		}
+		if (!data_err) {
+			/* Call syscall */
+			write_in_size = syscall(syscall_num, fd,
+						io_info.vh_buff_and_flag[j],
+						need_write_in_size[j], ofs);
+			if (FAIL == write_in_size) {
+				if (0 == i) {
+					errno_bak = errno;
+					exit_result = write_in_size;
+				}
+				errno = 0;
+				data_err = 1;
+				continue;
+			} else if (0 == write_in_size) {
+				data_err = 1;
+				continue;
+			}
+			exit_result += write_in_size;
+			ofs += write_in_size;
+			if (need_write_in_size[j] > write_in_size) {
+				data_err = 1;
+				continue;
+			}
 		}
 	}
-hndl_return:
+
 	ve_accelerated_io_post(io_info.vh_mask);
 	if (0 != errno_bak) {
 		errno = errno_bak;
@@ -851,14 +1151,19 @@ static ssize_t ve_accelerated_io_pwrite(int fd, const void *buf, size_t count,
 static ssize_t ve_accelerated_io_writev_pwritev(int syscall_num, int fd,
 				const struct iovec *iov, int count, off_t ofs)
 {
-	int i, n;
+	int i,j,k,n;
 	int ret = 0;
+	int dma_ret = 0;
 	int errno_bak = 0;
+	uint64_t posted[BUFF_NPARAS];
 	uint64_t write_num = 0;
+	int min_k = 0;
+	int data_err = 0;
 	acc_io_info io_info;
 	ssize_t total_size = 0;
-	ssize_t transfer_size = VE_BUFF_SIZE;
-	ssize_t write_in_size = 0;
+	ssize_t transfer_size = PARAS_SIZE;
+	ssize_t need_write_in_size[BUFF_NPARAS] = {0};
+	ssize_t write_in_size;
 	ssize_t exit_result = 0;
 	int write_syscall_type = SYS_write;
 
@@ -868,7 +1173,7 @@ static ssize_t ve_accelerated_io_writev_pwritev(int syscall_num, int fd,
 	ssize_t ve_buff_size_less = 0;
 	ssize_t iov_copy_size = 0;
 	uint64_t target_buff;
-	ve_dma_handle_t vedma_handle;
+	ve_dma_handle_t vedma_handle[BUFF_NPARAS];
 
 	if (0 == count) {
 		SYSCALL_CANCEL(exit_result, syscall_num, fd, iov, count, ofs);
@@ -900,30 +1205,80 @@ static ssize_t ve_accelerated_io_writev_pwritev(int syscall_num, int fd,
 		total_size = total_size + iov[i].iov_len; 
 	}
 
+	memset(posted, -1, sizeof(posted));
 	write_num = (total_size + transfer_size - 1)/ transfer_size;
 	for (i = 0; i < write_num; i++) {
 		if (i == 1) {
-			io_info.vh_buff_and_flag
-				= io_info.vh_buff_and_flag
-					| VE_SECOND_SYS_CALL_FLAG;
+			for (j = 0; j < BUFF_NPARAS; j++) {
+				io_info.vh_buff_and_flag[j]
+					= io_info.vh_buff_and_flag[j]
+						| VE_SECOND_SYS_CALL_FLAG;
+			}
 		}
 		if (i == write_num - 1) {
 			transfer_size = total_size - transfer_size * i;
 		}
 
-		/* Copy data from VE buffer to user buffer */
+		/* If not last 8MB */
+		j = i % BUFF_NPARAS;
+		if (i >= BUFF_NPARAS) {
+			/* Wait DMA */
+			dma_ret = ve_dma_wait(&vedma_handle[j]);
+			if (dma_ret >= 1) {
+				exit_result = FAIL;
+				errno_bak = EIO;
+				/* Data cannot be processed correctly
+				 * because "ve_dma_wait()" is failed,
+				 * but "ve_dma_wait()" of other "ve_dma_post()"
+				 * are need.
+				 */
+				data_err = 1;
+				posted[j] = -1;
+				break;
+			}
+
+			/* Call syscall */
+			write_in_size = syscall(write_syscall_type, fd,
+						io_info.vh_buff_and_flag[j],
+						PARAS_SIZE, ofs);
+			if (FAIL == write_in_size) {
+				if (0 == i) {
+					errno_bak = errno;
+					exit_result = write_in_size;
+				}
+				errno = 0;
+				data_err = 1;
+				posted[j] = -1;
+				break;
+			} else if (0 == write_in_size) {
+				data_err = 1;
+				posted[j] = -1;
+				break;
+			}
+			exit_result += write_in_size;
+			ofs += write_in_size;
+			if (PARAS_SIZE > write_in_size) {
+				data_err = 1;
+				posted[j] = -1;
+				break;
+			}			
+		}
+		/* Execute memory copy and data transfer in 1 set
+		 * and BUFF_NPARAS sets in parallel
+		 */
 		ve_buff_size_less = transfer_size;
-		target_buff = io_info.ve_buff;
+		target_buff = io_info.ve_buff[j];
 		for (n = next_iov_num; n < count; n++) {
 			iov_len_less = iov[n].iov_len - iov_len_done;
 			iov_copy_size = MIN (iov_len_less, ve_buff_size_less);
 			__libsysve_vec_memcpy((void *)target_buff,
-					(void *)iov[n].iov_base + iov_len_done,
+					(void *)((uint64_t)iov[n].iov_base
+						+ iov_len_done),
 					iov_copy_size);
 			if (0 >= (ve_buff_size_less - iov_copy_size)) {
 				/* We have copied All data from the user buffers
 				 * to the VE buffer.
-				*/
+				 */
 				if (iov_len_less > ve_buff_size_less) {
 					iov_len_done = iov_len_done
 							+ ve_buff_size_less;
@@ -932,6 +1287,12 @@ static ssize_t ve_accelerated_io_writev_pwritev(int syscall_num, int fd,
 					iov_len_done = 0;
 					next_iov_num = n + 1;
 				}
+				/* This loop breaks always here
+				 * because the user-specified buffer should be
+				 * larger than the data in the VE buffer
+				 */
+				ve_buff_size_less = ve_buff_size_less
+							- iov_copy_size;
 				break;
 			}
 			iov_len_done = 0;
@@ -940,34 +1301,67 @@ static ssize_t ve_accelerated_io_writev_pwritev(int syscall_num, int fd,
 		}
 
 		/* Transfer data from VE buffer to VH buffer by VE DMA */
-		ret = ve_dma_post_wait(io_info.vh_vehva, io_info.ve_vehva,
-					GET_DMA_SIZE(transfer_size));
+		ret = ve_dma_post(io_info.vh_vehva[j], io_info.ve_vehva[j],
+					GET_DMA_SIZE(transfer_size),
+					&vedma_handle[j]);
 		if (SUCCESS != ret) {
 			exit_result = FAIL;
 			errno_bak = EIO;
-			goto hndl_return;
+			posted[j] = -1;
+			data_err = 1;
+			break;
 		}
 
-		/* Call write syscall */
-		write_in_size = syscall(write_syscall_type, fd,
-				io_info.vh_buff_and_flag, transfer_size, ofs);
-		if (FAIL == write_in_size) {
-			if (0 == i) {
-				errno_bak = errno;
-				exit_result = write_in_size;
-			}
-			errno = 0;
-			break;
-		} else if (0 == write_in_size) {
-			break;
+		posted[j] = i;
+		need_write_in_size[j] = transfer_size - ve_buff_size_less;
+	}
+
+	/* Last 8MB */
+	min_k =  __ve_find_min_posted(posted);
+	for (k = 0; k < BUFF_NPARAS; k++) {
+		i = posted[(min_k + k) % BUFF_NPARAS];
+		if (i == -1) {
+			continue;
 		}
-		exit_result = exit_result + write_in_size;
-		ofs = ofs + transfer_size;
-		if (transfer_size > write_in_size) {
-			break;
+		j = i % BUFF_NPARAS;
+		/* Wait DMA */
+		dma_ret = ve_dma_wait(&vedma_handle[j]);
+		if (dma_ret >= 1) {
+			exit_result = FAIL;
+			errno_bak = EIO;
+			/* Data cannot be processed correctly
+			 * because "ve_dma_wait()" is failed,
+			 * but "ve_dma_wait()" of other "ve_dma_post()"
+			 * are need.
+			 */
+			data_err = 1;
+		}
+		/* Call syscall */
+		if (!data_err) {
+			write_in_size = syscall(write_syscall_type, fd,
+						io_info.vh_buff_and_flag[j],
+						need_write_in_size[j], ofs);
+			if (FAIL == write_in_size) {
+				if (0 == i) {
+					errno_bak = errno;
+					exit_result = write_in_size;
+				}
+				errno = 0;
+				data_err = 1;
+				continue;
+			} else if (0 == write_in_size) {
+				data_err = 1;
+				continue;
+			}
+			exit_result += write_in_size;
+			ofs += write_in_size;
+			if (need_write_in_size[j] > write_in_size) {
+				data_err = 1;
+				continue;
+			}
 		}
 	}
-hndl_return:
+
 	ve_accelerated_io_post(io_info.vh_mask);
 	if (0 != errno_bak) {
 		errno = errno_bak;
@@ -987,7 +1381,7 @@ hndl_return:
 static ssize_t ve_accelerated_io_writev(int fd, const struct iovec *iov,
 					int count)
 {
-        return ve_accelerated_io_writev_pwritev(SYS_writev, fd, iov, count, 0);
+	return ve_accelerated_io_writev_pwritev(SYS_writev, fd, iov, count, 0);
 }
 
 /**
@@ -1003,7 +1397,7 @@ static ssize_t ve_accelerated_io_writev(int fd, const struct iovec *iov,
 static ssize_t ve_accelerated_io_pwritev(int fd, const struct iovec *iov,
 					int count, off_t ofs)
 {
-        return ve_accelerated_io_writev_pwritev(SYS_pwritev, fd, iov, count, ofs);
+	return ve_accelerated_io_writev_pwritev(SYS_pwritev, fd, iov, count, ofs);
 }
 
 /**
