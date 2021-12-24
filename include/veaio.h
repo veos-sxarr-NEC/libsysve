@@ -31,7 +31,9 @@ extern "C" {
 
 #include <sys/types.h>
 
-struct ve_aio_ctx;
+
+struct ve_aio2_ctx;
+#define ve_aio_ctx ve_aio2_ctx
 
 struct ve_aio_ctx *ve_aio_init(void);
 int ve_aio_fini(struct ve_aio_ctx *ctx);

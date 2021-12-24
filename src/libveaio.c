@@ -33,6 +33,9 @@
 #include <veos_defs.h>
 #include <unistd.h>
 
+static pthread_mutex_t ve_aio_setup_lock = PTHREAD_MUTEX_INITIALIZER;
+static int ve_aio_setup = 0;
+
 /**
  * \defgroup veaio VE AIO
  *
@@ -77,7 +80,21 @@
 struct ve_aio_ctx *
 ve_aio_init(void)
 {
+	int err;
 	struct ve_aio_ctx *ctx;
+	pthread_mutex_lock(&ve_aio_setup_lock);
+	if (ve_aio_setup == 0) {
+		int ret = syscall(SYS_sysve, VE_SYSVE_AIO2_INIT);
+		if (ret) {
+			err = errno;
+			pthread_mutex_unlock(&ve_aio_setup_lock);
+			errno = err;
+			return NULL;
+		}
+		ve_aio_setup++;
+	}
+	pthread_mutex_unlock(&ve_aio_setup_lock);
+
 
 	ctx = calloc(1, sizeof(struct ve_aio_ctx));
 	if (NULL == ctx) {
@@ -115,13 +132,14 @@ ve_aio_fini(struct ve_aio_ctx *ctx)
 		errno = EINVAL;
 		return -1;
 	}
-	if (VE_AIO_INPROGRESS == ctx->status) {
+	if (ctx->result.binary < 0) {
 		/* set error EBUSY */
 		errno = EBUSY;
 		return -1;
 	}
 	pthread_mutex_destroy(&ctx->ve_aio_status_lock);
 	free(ctx);
+
 	return 0;
 }
 
@@ -156,22 +174,18 @@ ve_aio_read(struct ve_aio_ctx *ctx, int fd, ssize_t count, void *buf,
 	}
 
 	pthread_mutex_lock(&ctx->ve_aio_status_lock);
-	if (VE_AIO_INPROGRESS == ctx->status) {
+	if (ctx->result.binary < 0) {
 		pthread_mutex_unlock(&ctx->ve_aio_status_lock);
 		errno = EBUSY;
 		return -1;
-	} else if (VE_AIO_COMPLETE != ctx->status) {
-		pthread_mutex_unlock(&ctx->ve_aio_status_lock);
-		errno = EINVAL;
-		return -1;
 	}
-	ctx->status = VE_AIO_INPROGRESS;
+	ctx->result.active = 1;
 	pthread_mutex_unlock(&ctx->ve_aio_status_lock);
 
-	if (syscall(SYS_sysve, VE_SYSVE_AIO_READ, ctx, fd, count, buf,
+	if (syscall(SYS_sysve, VE_SYSVE_AIO2_READ, ctx, fd, count, buf,
 			offset)) {
 		pthread_mutex_lock(&ctx->ve_aio_status_lock);
-		ctx->status = VE_AIO_COMPLETE;
+		ctx->result.active = 0;
 		pthread_mutex_unlock(&ctx->ve_aio_status_lock);
 		return -1;
 	}
@@ -210,25 +224,21 @@ ve_aio_write(struct ve_aio_ctx *ctx, int fd, ssize_t count, void *buf,
         }
 
         pthread_mutex_lock(&ctx->ve_aio_status_lock);
-        if (VE_AIO_INPROGRESS == ctx->status) {
+        if (ctx->result.binary < 0) {
                 pthread_mutex_unlock(&ctx->ve_aio_status_lock);
                 errno = EBUSY;
                 return -1;
-        } else if (VE_AIO_COMPLETE != ctx->status) {
-                pthread_mutex_unlock(&ctx->ve_aio_status_lock);
-                errno = EINVAL;
-                return -1;
         }
-        ctx->status = VE_AIO_INPROGRESS;
+        ctx->result.active = 1;
         pthread_mutex_unlock(&ctx->ve_aio_status_lock);
 
-	if (syscall(SYS_sysve, VE_SYSVE_AIO_WRITE, ctx, fd, count, buf,
-			offset)) {
-		pthread_mutex_lock(&ctx->ve_aio_status_lock);
-		ctx->status = VE_AIO_COMPLETE;
-		pthread_mutex_unlock(&ctx->ve_aio_status_lock);
-		return -1;
-	}
+        if (syscall(SYS_sysve, VE_SYSVE_AIO2_WRITE, ctx, fd, count, buf,
+                        offset)) {
+                pthread_mutex_lock(&ctx->ve_aio_status_lock);
+                ctx->result.active = 0;
+                pthread_mutex_unlock(&ctx->ve_aio_status_lock);
+                return -1;
+        }
 
 	return 0;
 }
@@ -256,7 +266,7 @@ ve_aio_query(struct ve_aio_ctx *ctx, ssize_t *retval, int *errnoval)
 		errno = EINVAL;
 		return -1;
 	}
-	if (VE_AIO_INPROGRESS == ctx->status)
+	if (ctx->result.binary < 0)
 		return 1;
 	if (NULL != retval)
 		*retval = ctx->result.retval;
@@ -293,28 +303,21 @@ ve_aio_wait(struct ve_aio_ctx *ctx, ssize_t *retval, int *errnoval)
 		errno = EINVAL;
 		return -1;
 	}
-	if (VE_AIO_COMPLETE == ctx->status) {
-		if (NULL != retval)
-			*retval = ctx->result.retval;
-		if (NULL != errnoval)
-			*errnoval = ctx->result.errnoval;
-		return 0;
-	}
+	if (ctx->result.binary >= 0)
+		goto hndl_ret;
 
-	ret = syscall(SYS_sysve, VE_SYSVE_AIO_WAIT, ctx);
+	ret = syscall(SYS_sysve, VE_SYSVE_AIO2_WAIT, ctx);
 	if (ret != 0)
 		return ret;
 
-	if (VE_AIO_COMPLETE == ctx->status) {
-		if (NULL != retval)
-			*retval = ctx->result.retval;
-		if (NULL != errnoval)
-			*errnoval = ctx->result.errnoval;
-		return 0;
-	} else {
+	if (ctx->result.binary < 0) {
 		errno = EBUSY;
 		return -1;
 	}
-
+hndl_ret:
+	if (NULL != retval)
+		*retval = ctx->result.retval;
+	if (NULL != errnoval)
+                        *errnoval = ctx->result.errnoval;
 	return 0;
 }

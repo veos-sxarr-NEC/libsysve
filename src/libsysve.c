@@ -54,6 +54,11 @@
  *   Date,
  *   Updates/Remarks
  * @par
+ *   Rev.16,
+ *   Dec. 2021, @n
+ *   This revision covers libsysve-2.10.0 or later. @n
+ *   Update the example of VE DMA to show restrictions relating to alignments
+ * @par
  *   Rev.15,
  *   Sep. 2021, @n
  *   This revision covers libsysve-2.9.0 or later. @n
@@ -171,6 +176,19 @@ ssize_t ve_get_ve_info(char *name, char *buffer, size_t size)
 }
 
 /**
+ * @brief This function set the thread to be created next time to be a VE worker thread.
+ *
+ * @retval  0 on sucess.
+ * @retval  -1 is returned and errno is set on failure.
+ */
+int ve_set_next_thread_worker()
+{
+	int ret = 0;
+	ret = syscall(SYS_sysve, VE_SYSVE_SET_NEXT_THREAD_WORKER);
+	return ret;
+}
+
+/**
  * \defgroup misc MISC
  *
  * Miscellaneous APIs.
@@ -269,4 +287,3 @@ ve_is_acc_io_enabled(void)
 	ret = syscall(SYS_sysve, VE_SYSVE_IS_ACC_IO_ENABLED);
 	return ret;
 }
-
