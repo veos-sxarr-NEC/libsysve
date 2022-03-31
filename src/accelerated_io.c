@@ -1004,7 +1004,7 @@ static ssize_t ve_accelerated_io_write_pwrite(int syscall_num, int fd,
 						io_info.vh_buff_and_flag[j],
 						PARAS_SIZE, ofs);
 			if (FAIL == write_in_size) {
-				if (0 == i) {
+				if (0 == posted[j]) {
 					errno_bak = errno;
 					exit_result = write_in_size;
 				}
@@ -1242,7 +1242,7 @@ static ssize_t ve_accelerated_io_writev_pwritev(int syscall_num, int fd,
 						io_info.vh_buff_and_flag[j],
 						PARAS_SIZE, ofs);
 			if (FAIL == write_in_size) {
-				if (0 == i) {
+				if (0 == posted[j]) {
 					errno_bak = errno;
 					exit_result = write_in_size;
 				}

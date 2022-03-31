@@ -158,3 +158,5 @@ Execute compiled VE program.
 $ ./simple_aio
 OK
 ~~~
+
+There are some environment variables to change IO performance in VE AIO. Please find [Note](group__veaio.html#details) for more detail.

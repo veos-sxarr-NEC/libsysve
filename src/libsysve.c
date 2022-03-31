@@ -47,17 +47,24 @@
  * libsysve-devel package needs to be installed.
  *
  * \author NEC Corporation
- * \copyright 2017-2021. Licensed under the terms of the MIT license.
+ * \copyright 2017-2022. Licensed under the terms of the MIT license.
  *
  * @par Revision History
  *   Revision,
  *   Date,
  *   Updates/Remarks
  * @par
+ *   Rev.17,
+ *   Mar. 2022, @n
+ *   This revision covers libsysve-2.11.0 or later. @n
+ *   Add descriptions of API which gets VE product name. @n
+ *   Add descriptions of APIs for VESHM. @n
+ * @par
  *   Rev.16,
  *   Dec. 2021, @n
  *   This revision covers libsysve-2.10.0 or later. @n
- *   Update the example of VE DMA to show restrictions relating to alignments
+ *   Update the example of VE DMA to show restrictions relating to alignments @n
+ *   Update the API reference of VE Asynchronous I/O. @n
  * @par
  *   Rev.15,
  *   Sep. 2021, @n
@@ -188,6 +195,7 @@ int ve_set_next_thread_worker()
 	return ret;
 }
 
+
 /**
  * \defgroup misc MISC
  *
@@ -253,6 +261,49 @@ int ve_get_nonswappable(uint64_t *size)
 }
 
 /**
+ * @brief This function returns RDMA_OFFSET, start address and size of VE memory
+ *        virtual address region.
+ *
+ * @param[out] addr Pointer to a variable which stores start address of
+ *                  VE memory virtual address region.
+ * @param[out] size Pointer to a variable which stores size of VE memory virtual
+ *                  address region.
+ * @param[out] offset Pointer to a variable which stores RDMA_OFFSET.
+ *
+ * @retval  0 on sucess.
+ * @retval  -1 is returned and errno is set on failure.
+ */
+int ve_get_vemva_region(uint64_t *addr, size_t *size, int64_t *offset)
+{
+	int ret;
+	ret = syscall(SYS_sysve, VE_SYSVE_VEMVA_REGION,
+			(uint64_t)addr, (uint64_t)size, (uint64_t)offset);
+	return ret;
+}
+
+/**
+ * @brief This function gets VE product neme from a sysfs file of current VE node.
+ *
+ * @param[out] name Address of buffer to store VE product name.
+ *                  VE product name will be a null-terminated string even if buffer size 
+ *                  is small or equal to the size of information.
+ * @param[in] size Buffer (name) size.
+ *
+ * @retval  0 on sucess.
+ * @retval  -1 is returned and errno is set on failure.
+ *
+ * @internal
+ *
+ * @author libsysve
+ */
+int ve_get_ve_product_name(char *name, size_t size)
+{
+	int ret = 0;
+	ret = syscall(SYS_sysve, VE_SYSVE_GET_VE_PRODUCT_NAME, (uint64_t)name, size);
+	return ret;
+}
+
+/**
  * \ingroup veaccio
  *
  * Accelerated IO APIs.
@@ -260,7 +311,6 @@ int ve_get_nonswappable(uint64_t *size)
  *
  */
 /*@{*/
-
 
 /**
  * @brief This is a function of libsysve which checks accelerated IO is enabled
@@ -287,3 +337,4 @@ ve_is_acc_io_enabled(void)
 	ret = syscall(SYS_sysve, VE_SYSVE_IS_ACC_IO_ENABLED);
 	return ret;
 }
+

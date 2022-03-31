@@ -39,6 +39,8 @@ int ve_get_fixed_vehva(uint64_t, uint64_t *);
 int ve_get_numa_node(unsigned *);
 int ve_get_veos_pid(void);
 int ve_get_nonswappable(uint64_t *);
+int ve_get_vemva_region(uint64_t *, size_t *, int64_t *);
 int ve_is_acc_io_enabled(void);
+int ve_get_ve_product_name(char *, size_t);
 
 #endif

@@ -54,14 +54,24 @@ static int ve_aio_setup = 0;
  *       behavior. Check read/write operation status by using
  *       ve_aio_query() or synchronize read/write operation by using
  *       ve_aio_wait().
- * @note Pseudo process(ve_exec) creates a thread and opens two files
- *       to submit a read/write request. So, the maximum number of
- *       read/write requests which a VE program can submit at same
- *       time is depend on the following limits.
- *         1. The number of processes which can be created on VH (per user)
- *         2. The number of files which can be opened per process
- * @note If VE thread which has submitted read/write request terminates before
- *       completion of read/write operation, then VE process gets abnormal termination.
+ * @note Pseudo process(ve_exec) creates IO worker threads on VH and each 
+ *       thread allocates IO buffer and opens two files to communicate 
+ *       with VEOS. IO request is divided and processed non-atomically 
+ *       under multithreading by default. Following environment 
+ *       variables can be set to change from default.
+ *         - VE_ASYNC_IO_THREAD To specify the number of VEAIO worker 
+ *         threads per VE process. This is valid only when 
+ *         VE_ASYNC_IO_ATOMIC is 0. Default is 4.
+ *         - VE_ASYNC_IO_BUFSIZE To specify IO buffer size(Byte) per 
+ *         worker thread. This is valid only when VE_ASYNC_IO_ATOMIC is 
+ *         0. Default is 8MB.
+ *         - VE_ASYNC_IO_ATOMIC Set this to 1 and VEAIO worker threads 
+ *         process IO operation atomically. Default is 0. The number of 
+ *         bytes read or written at once is restricted to 
+ *         2147479552Byte(2GB - 4KB) same as pread64/pwrite64.
+ * @note If VE thread which has submitted read/write request terminates 
+ *       before completion of read/write operation, then VE process 
+ *       gets abnormal termination.
  */
 /*@{*/
 
@@ -148,8 +158,6 @@ ve_aio_fini(struct ve_aio_ctx *ctx)
  *
  * @note This function internally invokes pread() system call at VH side
  * @note Context can be reused after completion of previous request
- * @note Number of bytes read at once is restricted to
- *       2147479552Byte(2GB - 4KB) as well as pread()
  *
  * @param[in] ctx Context managing this request
  * @param[in] fd File descriptor which refer to a file this function reads to
@@ -198,8 +206,6 @@ ve_aio_read(struct ve_aio_ctx *ctx, int fd, ssize_t count, void *buf,
  *
  * @note This function internally invokes pwrite() system call at VH side
  * @note Context can be reused after completion of previous request
- * @note Number of bytes written at once is restricted to
- *       2147479552Byte(2GB - 4KB) as well as pwrite()
  *
  * @param[in] ctx Context managing this request
  * @param[in] fd File descriptor which refer to a file function writes to
