@@ -26,12 +26,20 @@ extern "C" {
 #define __VE_LIBVHCALL_H
 #include <vhcall.h>
 
+typedef struct vhcall_args {
+        int num;
+        vhcall_data data;
+        struct vhcall_args *next;
+        int args_num;
+} vhcall_args;
+
 vhcall_handle vhcall_install(const char *);
 int64_t vhcall_find(vhcall_handle, const char *);
 long vhcall_invoke(int64_t, const void *, size_t, void *, size_t);
 int vhcall_uninstall(vhcall_handle);
 #ifndef VHCALLNOENHANCE
 vhcall_args *vhcall_args_alloc(void);
+vhcall_args *vhcall_args_alloc_num(int num);
 int vhcall_args_set_i8(vhcall_args *, int, int8_t);
 int vhcall_args_set_u8(vhcall_args *, int, uint8_t);
 int vhcall_args_set_i16(vhcall_args *, int, int16_t);

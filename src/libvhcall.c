@@ -104,7 +104,35 @@ vhcall_args *vhcall_args_alloc(void)
                 goto ret;
         }
 
-        p->num = -1;
+	p->num = -1;
+        p->args_num = -1;
+        p->next = NULL;
+ret:
+        return p;
+}
+
+/**
+ * @brief Allocate VHCall arguments object extended for Fortran API
+ *
+ * @param[in] num the number of arguments.
+ * @return pointer to vehcall_args
+ * @retval NULL the allocation of vhcall_args failed and following errno is set:
+ *          - ENOMEM not enough VE memory.
+ */
+vhcall_args *vhcall_args_alloc_num(int num)
+{
+        vhcall_args *p;
+        p = (vhcall_args *)calloc(1, sizeof(vhcall_args));
+        if (p == NULL) {
+                errno = ENOMEM;
+                goto ret;
+        }
+
+	p->num = -1;
+	if (num < 0)
+		p->args_num = -1;
+	else
+        	p->args_num = num;
         p->next = NULL;
 ret:
         return p;
@@ -472,7 +500,7 @@ void vhcall_args_free(vhcall_args *ca) {
  */
 int vhcall_invoke_with_args(int64_t symid, vhcall_args *args, uint64_t *retval)
 {
-	uint64_t num_args;
+	int args_num;
 	int ret = -1;
 	vhcall_args *p;
 	vhcall_data data;
@@ -485,19 +513,39 @@ int vhcall_invoke_with_args(int64_t symid, vhcall_args *args, uint64_t *retval)
 	}
 
 	p = args;
+	args_num = p->args_num;
 	while (p != NULL) {
-                if (p->next != NULL)
-                        if (p->num+1 != p->next->num) {
+                if (args_num != -1) {
+                        if (p->num+1 > args_num) {
                                 errno = EINVAL;
-				return -1;
+                                return -1;
                         }
-		num_args = p->num+1;
-		if (p->data.cl == VHCALL_CLASS_CDB)
-			insize += 2*sizeof(vhcall_data);
-		else if (num_args != 0)
-			insize += sizeof(vhcall_data);
+                        if (p->next != NULL) {
+                                if (p->num+1 != p->next->num)
+                                        if (vhcall_args_set_u64(args,
+                                                                p->num+1, 0))
+                                                return -1;
+                        } else {
+                                if (p->num+1 < args_num)
+                                        if (vhcall_args_set_u64(args,
+                                                                p->num+1, 0))
+                                                return -1;
+                        }
+                } else {
+                        if (p->next != NULL) {
+                                if (p->num+1 != p->next->num) {
+                                        errno = EINVAL;
+                                        return -1;
+                                }
+                        }
+                }
+
+                if (p->data.cl == VHCALL_CLASS_CDB)
+                        insize += 2*sizeof(vhcall_data);
+                else if (p->num+1 != 0)
+                        insize += sizeof(vhcall_data);
                 p = p->next;
-	}
+        }
 
 	if (insize > 0) {
 		inptr = calloc(1, insize);
