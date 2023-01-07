@@ -195,6 +195,56 @@ int ve_set_next_thread_worker()
 	return ret;
 }
 
+/**
+ * @brief This function set all the flags “ve_sched_state” 
+ * of all threads except worker to VE_SCHED_STOPPING.
+ *
+ * @note If you create a thread in a worker thread after running
+ * ve_stop_user_threads(), The thread you created may not be stopped.
+ * Please run ve_stop_user_threads() again after creating the thread.
+ *
+ * @retval 0 on sucess.
+ * @retval -1 is returned and errno is set on failure.
+ *     - ESRCH No such process.
+ *     - EPERM Invoked by user thread.
+ */
+int ve_stop_user_threads(void)
+{
+	int ret = 0;
+	ret = syscall(SYS_sysve, VE_SYSVE_STOP_USER_THREADS);
+	return ret;
+}
+
+/**
+ * @brief This function set all the flags “ve_sched_state” 
+ * of all threads except worker to VE_SCHED_STARTED.
+ * 
+ * @retval 0 on sucess.
+ * @retval -1 is returned and errno is set on failure.
+ *     - ESRCH No such process.
+ *     - EPERM Invoked by user thread.
+ */
+int ve_start_user_threads(void)
+{
+	int ret = 0;
+	ret = syscall(SYS_sysve, VE_SYSVE_START_USER_THREADS);
+	return ret;
+}
+
+/**
+ * @brief This function check all the flags “ve_sched_state” 
+ * of all threads except worker.
+ * 
+ * @retval 0 on sucess.
+ * @retval -1 is returned and errno is set on failure.
+ *     - ESRCH No such process or Unable to find user threads.
+ */
+int ve_get_user_threads_state(void)
+{
+	int ret = 0;
+	ret = syscall(SYS_sysve, VE_SYSVE_GET_USER_THREADS_STATE);
+	return ret;
+}
 
 /**
  * \defgroup misc MISC
