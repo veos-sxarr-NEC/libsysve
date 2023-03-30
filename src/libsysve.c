@@ -47,12 +47,17 @@
  * libsysve-devel package needs to be installed.
  *
  * \author NEC Corporation
- * \copyright 2017-2022. Licensed under the terms of the MIT license.
+ * \copyright 2017-2023. Licensed under the terms of the MIT license.
  *
  * @par Revision History
  *   Revision,
  *   Date,
  *   Updates/Remarks
+ * @par 
+ *   Rev.18,
+ *   Mar. 2023, @n
+ *   This revision covers libsysve-3.0.1 or later. @n
+ *   Support VE3. @n
  * @par
  *   Rev.17,
  *   Mar. 2022, @n
@@ -388,3 +393,20 @@ ve_is_acc_io_enabled(void)
 	return ret;
 }
 
+/**
+ * @brief This is a function of libsysve which is used to get the proginf
+ * information.
+ *
+ * @param[in] version User specifies data structure version.
+ * @param[out] buffer A buffer for storing requested proginf data.
+ *
+ * @retval 0 on success.
+ * @retval -1 is returned and errno is set on failure.
+ */
+int get_proginf_data(int version, void *buffer)
+{
+	int ret = -1;
+
+	ret = syscall(SYS_sysve, VE_SYSVE_GET_PROGINF_DATA, version, buffer);
+	return ret;
+}

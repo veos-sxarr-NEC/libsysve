@@ -1,7 +1,11 @@
 %if "%{libc}" == "glibc"
-Name:           @PACKAGE_NAME@
+%if "%{_ve_arch}" == "ve3"
+Name:           @PACKAGE_NAME@-ve3
 %else
-Name:           @PACKAGE_NAME@-musl
+Name:           @PACKAGE_NAME@-ve1
+%endif
+%else
+Name:           @PACKAGE_NAME@-@VEARCH@-musl
 %endif
 
 Version:        @PACKAGE_VERSION@
@@ -17,7 +21,13 @@ BuildRequires:  vedebuginfo
 
 %if "%{libc}" == "glibc"
 BuildRequires:  veos-headers
-Requires:       glibc-ve
+%if "%{_ve_arch}" == "ve3"
+Requires:       glibc-ve3
+%else
+Requires:       glibc-ve1
+Obsoletes:      libsysve
+Provides:       libsysve
+%endif
 %define _opt    --enable-separatedlibs
 %else
 BuildRequires:  veos-musl-headers
@@ -34,14 +44,18 @@ to invoke VE-specific system calls or enable an additional feature.
 %package        devel
 Summary:        Headers for libsysve
 Requires:       %{name} = %{version}-%{release}
+%if "%{_ve_arch}" != "ve3"
+Obsoletes:      libsysve-devel
+Provides:       libsysve-devel
+%endif
 
 %description    devel
 This package contains the files required to build VE programs that use
 libraries in libsysve package.
-
 %define _prefix @prefix@
 %define _libdir @prefix@/lib
 %define __strip @ve_prefix@/bin/nstrip
+
 %if 0%{?rhel} == 8
 %global __debug_install_post /opt/nec/ve/libexec/find-debuginfo.sh --unique-debug-suffix "-%{VERSION}-%{RELEASE}.%{_arch}" -S debugsourcefiles.list %{_builddir}/%{buildsubdir} %{nil}
 %else
@@ -63,7 +77,6 @@ make
 make install DESTDIR=${RPM_BUILD_ROOT}
 
 %clean
-ls -l %{_libdir}
 %{__rm} -rf $RPM_BUILD_ROOT
 
 %files

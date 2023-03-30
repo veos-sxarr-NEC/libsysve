@@ -15,8 +15,13 @@ To develop VE programs using VH call, please install libsysve-devel package,
 which has libvhcall.h header declaring VH call API functions.
 
 For example, execute the following command as root.
+On ve1
 ~~~
-# yum install libsysve-devel
+# yum install libsysve-ve1-devel
+~~~
+On ve3
+~~~
+# yum install libsysve-ve3-devel
 ~~~
 
 If you are using musl-libc as C library, APIs introduced here are not supported.

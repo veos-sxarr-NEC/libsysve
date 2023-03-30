@@ -64,8 +64,8 @@ ve_dma_post:
 	# lock
 	or		%s63, 0, %sl
 	cas.l		%s63, vedma_lock(%s37), 0
-	brne.l.nt	0, %s63, -8
 	fencem		3
+	brne.l.nt       0, %s63, -16
 
 	# get index (s34)
 	ld		%s34, vedma_index(%s37)
@@ -172,8 +172,8 @@ ve_dma_poll:
 	# lock
 	or		%s63, 0, %sl
 	cas.l		%s63, vedma_lock(%s37), 0
-	brne.l.nt	0, %s63, -8
 	fencem		2
+	brne.l.nt       0, %s63, -16
 
 	# check handle->status
 	ldl		%s63, 0(%s0)
@@ -253,8 +253,8 @@ ve_dma_post_wait:
 	# lock
 	or		%s63, 0, %sl
 	cas.l		%s63, vedma_lock(%s37), 0
-	brne.l.nt	0, %s63, -8
 	fencem		3
+	brne.l.nt       0, %s63, -16
 
 	# get index (s34)
 	ld		%s34, vedma_index(%s37)

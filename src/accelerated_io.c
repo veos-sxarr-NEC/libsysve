@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 by NEC Corporation
+/* Copyright (C) 2018-2022 by NEC Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to
@@ -93,21 +93,22 @@
 #include <veacc_io_defs.h>
 #include "libsysve.h"
 #include "libsysve_utils.h"
+#include <signal.h>
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define GET_DMA_SIZE(a) ((a + 0x3) & 0xfffffffffffffffc)
 
 #define SYSCALL_CANCEL(a,...) \
-  do {\
-    pthread_testcancel();\
-    a = syscall(__VA_ARGS__);\
-    pthread_testcancel();\
-  } while(0)
+	do {\
+		pthread_testcancel();\
+		a = syscall(__VA_ARGS__);\
+		pthread_testcancel();\
+	} while(0)
 
 #define ACCELERATED_IO  0
 #define PDMA_IO  1
 
-#define VE_CORE_MAX 16
+#define VE_CORE_MAX 18
 #define CORE_NUM_BUFF_SIZE 32
 
 #define ENV_KEY_PDMA "VE_PDMA_IO"
@@ -137,31 +138,36 @@ typedef struct {
 	int vh_mask;	/*!< mask for get flag status of VH buffer */
 } acc_io_info;
 
-typedef struct {
-	int ve_buff_using_flag;	/*!< Flag status of VE buffer */
-	uint64_t local_vehva;	/*!< VEHVA of IO buffer memory on VE */
-	uint64_t ve_io_buff[VE_BUFF_SIZE/sizeof(uint64_t)];	/*!< VE buffer */
-} ve_acc_io_ve_resources;
-
-typedef struct {
-	int ve_core_num;	/*!< Number of ve cores */
-	int vh_buff_using_flag;	/*!< Bit flag of lock status of VH buffer */
-	void *vh_buff[VE_CORE_MAX];	/*!< Array of start address of VH buffer */
-	uint64_t vehva[VE_CORE_MAX];	/*!< Array of the VEHVA of VH buffer*/
-	pthread_spinlock_t lock;	/*!< spin lock for vh resources*/
-} ve_acc_io_vh_resources;
-
 static int constructor_result = ACCELERATED_IO;
 
-/**
- * @brief This global variable hold the information of VE/VH resources of
- * Accelerated IO
- */
-static __thread ve_acc_io_ve_resources ve_resources = {0, 0, {0}};
-static ve_acc_io_vh_resources vh_resources = {0, 0, {NULL}, {0}, 0};
+typedef struct {
+	uint64_t local_vehva;
+	uint64_t vehva;
+	uint64_t vh_buff;
+	uint64_t ve_io_buff[VE_BUFF_SIZE/sizeof(uint64_t)];
+	void *next;
+	void *prev;
+} acc_io_resources;
 
-/**
- * @brief This function check if environment that can use accelerated IO.
+static pthread_key_t acc_io_resources_key;
+
+static pthread_mutex_t acc_io_resources_list_lock = PTHREAD_MUTEX_INITIALIZER;
+static acc_io_resources list_head = {
+       .next = NULL,
+       .prev = NULL,
+};
+
+static void ve_accelerated_io_release_resource(acc_io_resources *, int);
+
+static __thread int ve_buff_using_flag = VE_BUFF_NOT_USING;
+
+/* Mask all signal while locking acc_io_resources_list_lock */
+static sigset_t acc_io_sigset;
+
+/* Save original signal mask of this thread i.e. Read/Write is called under multithread */
+static __thread sigset_t acc_io_sigset_old;
+
+/* @brief This function check if environment that can use accelerated IO.
  *
  * @retval ACCELERATED_IO accelerated IO is enable
  * @retval  PDMA_IO accelerated IO is disable
@@ -180,13 +186,13 @@ static int ve_accelerated_io_chk_env_init_dma(void)
 	env_val_atomic = getenv(ENV_KEY_ATOMIC);
 
 	if ((env_val_pdma != NULL)
-		&& ((int)strtol(env_val_pdma, &ptr_pdma, 2) != ACCELERATED_IO
-		|| strlen(ptr_pdma) != 0)) {
+			&& ((int)strtol(env_val_pdma, &ptr_pdma, 2) != ACCELERATED_IO
+				|| strlen(ptr_pdma) != 0)) {
 		return PDMA_IO;
 	}
 	if ((env_val_atomic != NULL)
-		&& ((int)strtol(env_val_atomic, &ptr_atomic, 2) != ACCELERATED_IO
-		|| strlen(ptr_atomic) != 0)) {
+			&& ((int)strtol(env_val_atomic, &ptr_atomic, 2) != ACCELERATED_IO
+				|| strlen(ptr_atomic) != 0)) {
 		return PDMA_IO;
 	}
 
@@ -199,84 +205,18 @@ static int ve_accelerated_io_chk_env_init_dma(void)
 
 /**
  * @brief This function get following information of accelerated IO resources
- *   from Libsysve global variable vh_resources.
- *   VH IO buffer
- *   VE IO buffer
- *   VEHVA of VH IO buffer
- *   VEHVA of VE IO buffer
+ * from Libsysve global variable vh_resources.
+ * VH IO buffer
+ * VE IO buffer
+ * VEHVA of VH IO buffer
+ * VEHVA of VE IO buffer
  *
  * @retval 0 on success, -1 on failure.
  */
-static int ve_accelerated_io_getinfo(void)
-{
-	void *vhva;
-	uint64_t vehva = 0;
-	void *local_vemva;
-	uint64_t local_vehva = 0;
-	void *vhva_register = NULL;
-	void *local_vemva_register = NULL;
-	int ret;
-	int i;
-
-	if (NULL == vh_resources.vh_buff[0]) {
-		/* Invoke Pseudo function sys_accelerated_io_init() */
-		ret = (int)syscall(SYS_sysve,
-				VE_SYSVE_ACCELERATED_IO_INIT,
-				&vhva, &vehva,
-				&ve_resources.ve_io_buff[0], &local_vehva,
-				vh_resources.ve_core_num);
-		if (SUCCESS != ret) {
-			return FAIL;
-		}
-
-		/* Put information into global variable */
-		vh_resources.vh_buff[0] = vhva;
-		vh_resources.vehva[0] = vehva;
-		ve_resources.local_vehva = local_vehva;
-
-		for (i = 0; i < vh_resources.ve_core_num; i++) {
-			vh_resources.vh_buff[i]	= (void *)((uint64_t)vhva
-							+ VE_BUFF_SIZE * i);
-			vh_resources.vehva[i] = vehva + VE_BUFF_SIZE * i;
-		}
-		return SUCCESS;
-	}
-
-	if (0 == vh_resources.vehva[0]){
-		vhva_register = vh_resources.vh_buff[0];
-	}
-	if (0 == ve_resources.local_vehva) {
-		local_vemva_register = &ve_resources.ve_io_buff[0];
-	}
-	if ((NULL != vhva_register)
-		|| (NULL != local_vemva_register)) {
-		/* Invoke sys_accelerated_io_register_dmaatb() */
-		ret = (int)syscall(SYS_sysve,
-				VE_SYSVE_ACCELERATED_IO_REGISTER_DMAATB,
-				vhva_register, &vehva,
-				local_vemva_register, &local_vehva,
-				vh_resources.ve_core_num);
-		if (SUCCESS != ret) {
-			return NOBUF;
-		}
-
-		if (0 != local_vehva) {
-			ve_resources.local_vehva = local_vehva;
-		}
-
-		if (0 != vehva) {
-			vh_resources.vehva[0] = vehva;
-			for (i = 0; i < vh_resources.ve_core_num; i++) {
-				vh_resources.vehva[i] = vehva + VE_BUFF_SIZE * i;
-			}
-		}
-	}
-	return SUCCESS;
-}
 
 /**
  * @brief This function handle pre-processing of IO request.
- *
+ * 
  * @param [out] struct acc_io_info
  *
  * @retval 0 on success, -1 on failure.
@@ -286,17 +226,15 @@ static int ve_accelerated_io_pre(acc_io_info *io_info)
 	int i;
 	int ret = SUCCESS;
 	int retval = SUCCESS;
-	int vh_buff_num = 0;
 	int errno_bak = errno;
-	void *vh_buff;
-	char *ptr_env;
-	char *evn_ve_acc_io;
-	int ve_acc_io_value = 0;
-	ssize_t transfer_size = VE_BUFF_SIZE;
-	ssize_t read_out_size = 0;
-	char core_num_buff[CORE_NUM_BUFF_SIZE] = {'\0'};
-	ve_dma_handle_t vedma_handle;
+	uint64_t vh_buff;
 	io_info->vh_mask = 1;
+
+	void *vhva;
+	uint64_t vehva = 0;
+	uint64_t local_vehva = 0;
+
+	acc_io_resources* acc_io_res;
 
 	pthread_testcancel();
 
@@ -305,94 +243,167 @@ static int ve_accelerated_io_pre(acc_io_info *io_info)
 	}
 
 	/* Checks VE IO buffer is using or not by flag ve_buff_using_flag */
-	ret = __libsysve_a_swap(&ve_resources.ve_buff_using_flag,
-				VE_BUFF_USING);
-	if(ret != VE_BUFF_NOT_USING){
+	retval = __libsysve_a_swap(&ve_buff_using_flag,VE_BUFF_USING);
+	if(retval != VE_BUFF_NOT_USING){
 		errno = errno_bak;
 		return NOBUF;
 	}
 
-	if (pthread_spin_lock(&vh_resources.lock) != 0) {
-		errno = errno_bak;
-		return FAIL;
-	}
-
-	evn_ve_acc_io = getenv(ENV_KEY_VE_ACC_IO);
-	if (evn_ve_acc_io != NULL) {
-		ve_acc_io_value = (int)strtol(evn_ve_acc_io, &ptr_env, 3);
-	}
-
-	if (ve_acc_io_value == SIZE_BY_CORE) {
-		if (FAIL == (int)ve_get_ve_info("num_of_core",
-					core_num_buff, CORE_NUM_BUFF_SIZE)) {
+	acc_io_res = pthread_getspecific(acc_io_resources_key);
+	if(acc_io_res == NULL){
+		/* When first IO request, check environment */
+		if(ACCELERATED_IO != ve_accelerated_io_chk_env_init_dma()){
 			retval = FAIL;
-			goto error_unlock_vh;
+			goto error_unlock_ve;
 		}
-		vh_resources.ve_core_num = atoi(core_num_buff);
-	} else {
-		vh_resources.ve_core_num = DEFAULT_CORE_NUM;
-	}
-
-	/* When first IO request, check environment */
-	if ((0 == vh_resources.vehva[0])
-		&& (ACCELERATED_IO != ve_accelerated_io_chk_env_init_dma())) {
-		retval = FAIL;
-		goto error_unlock_vh;
-	}
-	ret = ve_accelerated_io_getinfo();
-	if (SUCCESS != ret) {
-		retval = ret;
-		goto error_unlock_vh;
-	}
-	/* Find the free VH buffer */
-	for (i = 0; i < vh_resources.ve_core_num; i++) {
-		io_info->vh_mask = 1 << i;
-		if (0 == (vh_resources.vh_buff_using_flag & io_info->vh_mask)) {
-			vh_resources.vh_buff_using_flag
-				= vh_resources.vh_buff_using_flag
-				| io_info->vh_mask;
-			vh_buff_num = i;
-			break;
+		acc_io_res = (acc_io_resources *)malloc(sizeof(acc_io_resources));
+		if(acc_io_res == NULL){
+			retval = FAIL;
+			goto error_unlock_ve;
 		}
-		if (i == vh_resources.ve_core_num - 1) {
+		ret = (int)syscall(SYS_sysve,
+				VE_SYSVE_ACCELERATED_IO_INIT2,&vhva, &vehva,
+			&(acc_io_res->ve_io_buff), &local_vehva);
+		if (SUCCESS != ret) {
+			free(acc_io_res);
 			retval = NOBUF;
-			goto error_unlock_vh;
+			goto error_unlock_ve;
 		}
-	}
-	vh_buff = vh_resources.vh_buff[vh_buff_num];
-	
-	for (i = 0; i < BUFF_NPARAS; i++) {
-		io_info->ve_buff[i] = (uint64_t)&ve_resources.ve_io_buff[0]
-							+ PARAS_SIZE * i;
-		io_info->vh_vehva[i] = vh_resources.vehva[vh_buff_num]
-							+ PARAS_SIZE * i;
-		io_info->ve_vehva[i] = ve_resources.local_vehva
-							+ PARAS_SIZE * i;
+
+		acc_io_res->vh_buff =(uint64_t) vhva;
+                acc_io_res->vehva = vehva;
+                acc_io_res->local_vehva = local_vehva;
+
+		if(pthread_setspecific(acc_io_resources_key, (void *) acc_io_res)){
+			retval = FAIL;
+			ve_accelerated_io_release_resource(acc_io_res, 0);
+			goto error_unlock_ve;
+		}
+
+		pthread_sigmask(SIG_BLOCK, &acc_io_sigset, &acc_io_sigset_old);
+		pthread_mutex_lock(&acc_io_resources_list_lock);
+
+		acc_io_res->next = list_head.next;
+		acc_io_res->prev = &list_head;
+		if(list_head.next != NULL){
+			((acc_io_resources *)list_head.next)->prev = acc_io_res;
+		}
+		list_head.next = acc_io_res;
+		pthread_mutex_unlock(&acc_io_resources_list_lock);
+		pthread_sigmask(SIG_SETMASK, &acc_io_sigset_old, NULL);
+
+		ret = SUCCESS;
 	}
 
-	if (pthread_spin_unlock(&vh_resources.lock) != 0) {
-		abort();
+	vh_buff = acc_io_res->vh_buff;
+
+	for (i = 0; i < BUFF_NPARAS; i++) {
+		io_info->ve_buff[i] = (uint64_t)(acc_io_res->ve_io_buff)
+			+ PARAS_SIZE * i;
+		io_info->vh_vehva[i] = acc_io_res->vehva
+			+ PARAS_SIZE * i;
+		io_info->ve_vehva[i] = acc_io_res->local_vehva
+			+ PARAS_SIZE * i;
 	}
+
 	/* Set accelerated io bit flag to VHVA */
 	for (i = 0; i < BUFF_NPARAS; i++) {
 		io_info->vh_buff_and_flag[i]
-			= (((uint64_t)vh_buff) | VE_ACCELERATED_IO_FLAG)
-							+ PARAS_SIZE * i;
+			= (vh_buff | VE_ACCELERATED_IO_FLAG)
+			+ PARAS_SIZE * i;
 	}
 	return SUCCESS;
 
-error_unlock_vh:
-	if (pthread_spin_unlock(&vh_resources.lock) != 0) {
-		abort();
-	}
-
 error_unlock_ve:
 	/* Free flag ve_buff_using_flag */
-	__libsysve_a_swap(&ve_resources.ve_buff_using_flag,
-				VE_BUFF_NOT_USING);
+	__libsysve_a_swap(&ve_buff_using_flag,
+			VE_BUFF_NOT_USING);
 	errno = errno_bak;
 	return retval;
 }
+
+/**
+ * @brief This function is register to pthread_atfork() and called before fork.
+ * */
+static void ve_accelerated_io_atfork_prepare(){
+	pthread_sigmask(SIG_BLOCK, &acc_io_sigset, &acc_io_sigset_old);
+	pthread_mutex_lock(&acc_io_resources_list_lock);
+}
+
+/**
+ * @brief This function is register to pthread_atfork() and called at parent after fork.
+ */
+static void ve_accelerated_io_atfork_parent(){
+	pthread_mutex_unlock(&acc_io_resources_list_lock);
+	pthread_sigmask(SIG_SETMASK, &acc_io_sigset_old, NULL);
+}
+
+/**
+ * @brief This function clear all accelerated IO resources copied from parent. 
+ * The global variable list_head is the head of “ve_acc_io_ve_resource” list. 
+ * This function is register to pthread_atfork() and called at child after fork.
+ */
+ static void ve_accelerated_io_atfork_child(){
+	pthread_mutex_unlock(&acc_io_resources_list_lock);
+
+	pthread_setspecific(acc_io_resources_key, NULL);
+
+	acc_io_resources *temp = (&list_head)->next;
+	while(temp != NULL){
+		acc_io_resources *tem = temp;
+		temp = tem->next;
+		ve_accelerated_io_release_resource(tem, 1);
+	}
+	list_head.next = NULL;
+	ve_buff_using_flag = VE_BUFF_NOT_USING;
+
+	pthread_sigmask(SIG_SETMASK, &acc_io_sigset_old, NULL);
+}
+
+/**
+ * @brief This function is destructor registered by pthread_key_create with acc_io_resources_key. 
+ * The global variable list_head is the head of “ve_acc_io_ve_resource” list. 
+ * This function removes accelerated IO resource from the list and call ve_accelerated_io_release_resource.
+ * 
+ * @param [in] param
+ */
+static void ve_accelerated_io_dstfunc(void* param){
+	pthread_sigmask(SIG_BLOCK, &acc_io_sigset, &acc_io_sigset_old);
+	pthread_mutex_lock(&acc_io_resources_list_lock);
+
+	((acc_io_resources *)((acc_io_resources *)param)->prev)->next 
+		= ((acc_io_resources *)param)->next;
+	if(((acc_io_resources *)param)->next != NULL){
+		((acc_io_resources *)((acc_io_resources *)param)->next)->prev 
+			= ((acc_io_resources *)param)->prev;
+	}
+
+	pthread_mutex_unlock(&acc_io_resources_list_lock);
+	pthread_sigmask(SIG_SETMASK, &acc_io_sigset_old, NULL);
+
+	ve_accelerated_io_release_resource(param, 0);
+}
+
+/**
+ * @brief This function release VE/VH memory and DMAATB.
+ *  Unregistering DMAATB is skipped when this function is called from pthread_atfork handler.
+ * 
+ * @param [in] VE accelerated io resource to be released. 
+ * This includes some resources for user DMA such as VEHVA, VH address. 
+ * @param [in] Set to 1 when this function called from pthread_atfork handler. Otherwise 0.
+ */
+static void ve_accelerated_io_release_resource(acc_io_resources *res, int is_fork){
+	syscall(SYS_sysve,
+			VE_SYSVE_ACCELERATED_IO_FREE_VH_BUF,
+			res->vh_buff);
+	if(is_fork == 0){
+		syscall(SYS_sysve,
+				VE_SYSVE_ACCELERATED_IO_UNREGISTER_DMAATB,
+				res->local_vehva, res->vehva);
+	}
+	free(res);
+}
+
 
 /**
  * @brief This function handle post-processing of IO request.
@@ -401,20 +412,10 @@ error_unlock_ve:
  */
 static void ve_accelerated_io_post(int mask)
 {
-	int ret;
-
 	/* Free flag ve_buff_using_flag */
-	__libsysve_a_swap(&ve_resources.ve_buff_using_flag,
-				VE_BUFF_NOT_USING);
+	__libsysve_a_swap(&ve_buff_using_flag,
+			VE_BUFF_NOT_USING);
 
-	if (pthread_spin_lock(&vh_resources.lock) != 0) {
-		abort();
-	}
-	vh_resources.vh_buff_using_flag
-		= vh_resources.vh_buff_using_flag & (~mask);
-	if (pthread_spin_unlock(&vh_resources.lock) != 0) {
-		abort();
-	}
 	pthread_testcancel();
 }
 
@@ -472,7 +473,7 @@ static inline int __ve_find_min_posted(uint64_t *posted)
  * @return Total number of read bytes on Success, -1 on Failure.
  */
 static ssize_t ve_accelerated_io_read_pread(int syscall_num, int fd, void *buf,
-					size_t count, off_t ofs)
+		size_t count, off_t ofs)
 {
 	int i,j,k;
 	int ret = 0;
@@ -499,7 +500,7 @@ static ssize_t ve_accelerated_io_read_pread(int syscall_num, int fd, void *buf,
 	}
 	/* Pre processing of IO request */
 	ret = ve_accelerated_io_pre(&io_info);
-	
+
 	if (FAIL == ret) {
 		ve_accelerated_io_free_io_hook();
 		SYSCALL_CANCEL(exit_result, syscall_num, fd, buf, count, ofs);
@@ -516,7 +517,7 @@ static ssize_t ve_accelerated_io_read_pread(int syscall_num, int fd, void *buf,
 			for (j = 0; j < BUFF_NPARAS; j++) {
 				io_info.vh_buff_and_flag[j]
 					= io_info.vh_buff_and_flag[j]
-						| VE_SECOND_SYS_CALL_FLAG;
+					| VE_SECOND_SYS_CALL_FLAG;
 			}
 		}
 		if (i == read_num - 1) {
@@ -543,7 +544,7 @@ static ssize_t ve_accelerated_io_read_pread(int syscall_num, int fd, void *buf,
 			/* Copy data from ve buffer to user buffer */
 			__libsysve_vec_memcpy(buf,
 					(void *)((uint64_t)io_info.ve_buff[j]),
-							read_out_size[j]);
+					read_out_size[j]);
 			buf = (void *)((uint64_t)buf + read_out_size[j]);
 			exit_result += read_out_size[j];
 		}
@@ -568,8 +569,8 @@ static ssize_t ve_accelerated_io_read_pread(int syscall_num, int fd, void *buf,
 		}
 		/* Transfer data from VH buffer to VE buffer by VE DMA */
 		ret = ve_dma_post(io_info.ve_vehva[j], io_info.vh_vehva[j],
-					GET_DMA_SIZE(read_out_size[j]),
-					&vedma_handle[j]);
+				GET_DMA_SIZE(read_out_size[j]),
+				&vedma_handle[j]);
 		if (SUCCESS != ret) {
 			exit_result = FAIL;
 			errno_bak = EIO;
@@ -601,17 +602,17 @@ static ssize_t ve_accelerated_io_read_pread(int syscall_num, int fd, void *buf,
 			exit_result = FAIL;
 			errno_bak = EIO;
 			/* Data cannot be processed correctly
- 			 * because "ve_dma_wait()" is failed,
+			 * because "ve_dma_wait()" is failed,
 			 * but "ve_dma_wait()" of other "ve_dma_post()"
 			 * are need.
 			 */
 			data_err = 1;
 		}
 		if (!data_err) {
-		/* Copy data from ve buffer to user buffer */
+			/* Copy data from ve buffer to user buffer */
 			__libsysve_vec_memcpy(buf,
 					(void *)((uint64_t)io_info.ve_buff[j]),
-							read_out_size[j]);
+					read_out_size[j]);
 
 			buf = (void *)((uint64_t)buf + read_out_size[j]);
 			exit_result += read_out_size[j];
@@ -650,7 +651,7 @@ static ssize_t ve_accelerated_io_read(int fd, void *buf, size_t count)
  * @return Total number of read bytes on Success, -1 on Failure.
  */
 static ssize_t ve_accelerated_io_pread(int fd, void *buf, size_t count,
-					off_t ofs)
+		off_t ofs)
 {
 	return ve_accelerated_io_read_pread(SYS_pread64, fd, buf, count, ofs);
 }
@@ -667,7 +668,7 @@ static ssize_t ve_accelerated_io_pread(int fd, void *buf, size_t count,
  * @return Total number of read bytes on Success, -1 on Failure.
  */
 static ssize_t ve_accelerated_io_readv_preadv(int syscall_num, int fd,
-				const struct iovec *iov, int count, off_t ofs)
+		const struct iovec *iov, int count, off_t ofs)
 {
 	int i,j,k,n;
 	int ret = 0;
@@ -716,7 +717,7 @@ static ssize_t ve_accelerated_io_readv_preadv(int syscall_num, int fd,
 	if (SYS_preadv == syscall_num) {
 		read_syscall_type = SYS_pread64;
 	}
-	
+
 	/* get total size */
 	for (i = 0; i < count; i++) {
 		total_size = total_size + iov[i].iov_len; 
@@ -729,7 +730,7 @@ static ssize_t ve_accelerated_io_readv_preadv(int syscall_num, int fd,
 			for (j = 0; j < BUFF_NPARAS; j++) {
 				io_info.vh_buff_and_flag[j]
 					= io_info.vh_buff_and_flag[j]
-						| VE_SECOND_SYS_CALL_FLAG;
+					| VE_SECOND_SYS_CALL_FLAG;
 			}
 		}
 		if (i == read_num - 1) {
@@ -760,16 +761,16 @@ static ssize_t ve_accelerated_io_readv_preadv(int syscall_num, int fd,
 				iov_len_less = iov[n].iov_len - iov_len_done;
 				iov_copy_size = MIN (iov_len_less, ve_buff_size_less);
 				__libsysve_vec_memcpy(
-					(void *)((uint64_t)iov[n].iov_base
+						(void *)((uint64_t)iov[n].iov_base
 							+ iov_len_done),
-					(void *)source_buff, iov_copy_size);
+						(void *)source_buff, iov_copy_size);
 				if (0 >= (ve_buff_size_less - iov_copy_size)) {
-				/* We have copied All data from the VE buffer to
-				 * the user buffers.
-				*/
+					/* We have copied All data from the VE buffer to
+					 * the user buffers.
+					 */
 					if (iov_len_less > ve_buff_size_less) {
 						iov_len_done = iov_len_done
-								+ ve_buff_size_less;
+										+ ve_buff_size_less;
 						next_iov_num = n;
 					} else {
 						iov_len_done = 0;
@@ -804,8 +805,8 @@ static ssize_t ve_accelerated_io_readv_preadv(int syscall_num, int fd,
 		}
 		/* Transfer data from VH buffer to VE buffer by VE DMA */
 		ret = ve_dma_post(io_info.ve_vehva[j], io_info.vh_vehva[j],
-					GET_DMA_SIZE(read_out_size[j]),
-					&vedma_handle[j]);
+				GET_DMA_SIZE(read_out_size[j]),
+				&vedma_handle[j]);
 
 		if (SUCCESS != ret) {
 			exit_result = FAIL;
@@ -851,16 +852,16 @@ static ssize_t ve_accelerated_io_readv_preadv(int syscall_num, int fd,
 			for (n = next_iov_num; n < count; n++) {
 				iov_len_less = iov[n].iov_len - iov_len_done;
 				iov_copy_size = MIN (iov_len_less,
-							ve_buff_size_less);
+						ve_buff_size_less);
 				__libsysve_vec_memcpy(
-					(void *)((uint64_t)iov[n].iov_base
-								+ iov_len_done),
-							(void *)source_buff,
-							iov_copy_size);
+						(void *)((uint64_t)iov[n].iov_base
+							+ iov_len_done),
+						(void *)source_buff,
+						iov_copy_size);
 				if (0 >= (ve_buff_size_less - iov_copy_size)) {
-				/* We have copied All data from the VE buffer to
-				 * the user buffers.
-				 */
+					/* We have copied All data from the VE buffer to
+					 * the user buffers.
+					 */
 					if (iov_len_less > ve_buff_size_less) {
 						iov_len_done = iov_len_done
 							+ ve_buff_size_less;
@@ -873,7 +874,7 @@ static ssize_t ve_accelerated_io_readv_preadv(int syscall_num, int fd,
 				}
 				iov_len_done = 0;
 				ve_buff_size_less = ve_buff_size_less
-							- iov_copy_size;
+					- iov_copy_size;
 				source_buff = source_buff + iov_copy_size;
 			}
 			exit_result += read_out_size[j];
@@ -893,11 +894,11 @@ static ssize_t ve_accelerated_io_readv_preadv(int syscall_num, int fd,
  * @param[in] File descriptor which refer to a file this function reads from
  * @param[in] Buffer into which this function stores the read data
  * @param[in] Number of read buffer
- *
+ * 
  * @return Total number of read bytes on Success, -1 on Failure.
  */
 static ssize_t ve_accelerated_io_readv(int fd, const struct iovec *iov,
-					int count)
+		int count)
 {
 	return ve_accelerated_io_readv_preadv(SYS_readv, fd, iov, count, 0);
 }
@@ -913,7 +914,7 @@ static ssize_t ve_accelerated_io_readv(int fd, const struct iovec *iov,
  * @return Total number of read bytes on Success, -1 on Failure.
  */
 static ssize_t ve_accelerated_io_preadv(int fd, const struct iovec *iov,
-					int count, off_t ofs)
+		int count, off_t ofs)
 {
 	return ve_accelerated_io_readv_preadv(SYS_preadv, fd, iov, count, ofs);
 }
@@ -930,8 +931,8 @@ static ssize_t ve_accelerated_io_preadv(int fd, const struct iovec *iov,
  * @return Total number of write bytes on Success, -1 on Failure.
  */
 static ssize_t ve_accelerated_io_write_pwrite(int syscall_num, int fd,
-						const void *buf, size_t count,
-						off_t ofs)
+		const void *buf, size_t count,
+		off_t ofs)
 {
 	int i,j,k;
 	int ret = 0;
@@ -975,7 +976,7 @@ static ssize_t ve_accelerated_io_write_pwrite(int syscall_num, int fd,
 			for (j = 0; j < BUFF_NPARAS; j++) {
 				io_info.vh_buff_and_flag[j]
 					= io_info.vh_buff_and_flag[j]
-						| VE_SECOND_SYS_CALL_FLAG;
+					| VE_SECOND_SYS_CALL_FLAG;
 			}
 		}
 		if (i == write_num - 1) {
@@ -1001,8 +1002,8 @@ static ssize_t ve_accelerated_io_write_pwrite(int syscall_num, int fd,
 
 			/* Call syscall */
 			write_in_size = syscall(syscall_num, fd,
-						io_info.vh_buff_and_flag[j],
-						PARAS_SIZE, ofs);
+					io_info.vh_buff_and_flag[j],
+					PARAS_SIZE, ofs);
 			if (FAIL == write_in_size) {
 				if (0 == posted[j]) {
 					errno_bak = errno;
@@ -1035,12 +1036,11 @@ static ssize_t ve_accelerated_io_write_pwrite(int syscall_num, int fd,
 		 */
 		/* Copy data from user buffer to VE buffer */
 		__libsysve_vec_memcpy((void *)io_info.ve_buff[j],
-						(void *)buf, transfer_size);
-
+				(void *)buf, transfer_size);
 		/* Transfer data from VE buffer to VH buffer by VE DMA */
 		ret = ve_dma_post(io_info.vh_vehva[j], io_info.ve_vehva[j],
-					GET_DMA_SIZE(transfer_size),
-					&vedma_handle[j]);
+				GET_DMA_SIZE(transfer_size),
+				&vedma_handle[j]);
 		if (SUCCESS != ret) {
 			exit_result = FAIL;
 			errno_bak = EIO;
@@ -1077,8 +1077,8 @@ static ssize_t ve_accelerated_io_write_pwrite(int syscall_num, int fd,
 		if (!data_err) {
 			/* Call syscall */
 			write_in_size = syscall(syscall_num, fd,
-						io_info.vh_buff_and_flag[j],
-						need_write_in_size[j], ofs);
+					io_info.vh_buff_and_flag[j],
+					need_write_in_size[j], ofs);
 			if (FAIL == write_in_size) {
 				if (0 == i) {
 					errno_bak = errno;
@@ -1132,7 +1132,7 @@ static ssize_t ve_accelerated_io_write(int fd, const void *buf, size_t count)
  * @return Total number of write bytes on Success, -1 on Failure.
  */
 static ssize_t ve_accelerated_io_pwrite(int fd, const void *buf, size_t count,
-					off_t ofs)
+		off_t ofs)
 {
 	return ve_accelerated_io_write_pwrite(SYS_pwrite64, fd, buf, count, ofs);
 }
@@ -1149,7 +1149,7 @@ static ssize_t ve_accelerated_io_pwrite(int fd, const void *buf, size_t count,
  * @return Total number of read bytes on Success, -1 on Failure.
  */
 static ssize_t ve_accelerated_io_writev_pwritev(int syscall_num, int fd,
-				const struct iovec *iov, int count, off_t ofs)
+		const struct iovec *iov, int count, off_t ofs)
 {
 	int i,j,k,n;
 	int ret = 0;
@@ -1199,7 +1199,7 @@ static ssize_t ve_accelerated_io_writev_pwritev(int syscall_num, int fd,
 	if (SYS_pwritev == syscall_num) {
 		write_syscall_type = SYS_pwrite64;
 	}
-	
+
 	/* get total size */
 	for (i = 0; i < count; i++) {
 		total_size = total_size + iov[i].iov_len; 
@@ -1212,7 +1212,7 @@ static ssize_t ve_accelerated_io_writev_pwritev(int syscall_num, int fd,
 			for (j = 0; j < BUFF_NPARAS; j++) {
 				io_info.vh_buff_and_flag[j]
 					= io_info.vh_buff_and_flag[j]
-						| VE_SECOND_SYS_CALL_FLAG;
+					| VE_SECOND_SYS_CALL_FLAG;
 			}
 		}
 		if (i == write_num - 1) {
@@ -1239,8 +1239,8 @@ static ssize_t ve_accelerated_io_writev_pwritev(int syscall_num, int fd,
 
 			/* Call syscall */
 			write_in_size = syscall(write_syscall_type, fd,
-						io_info.vh_buff_and_flag[j],
-						PARAS_SIZE, ofs);
+					io_info.vh_buff_and_flag[j],
+					PARAS_SIZE, ofs);
 			if (FAIL == write_in_size) {
 				if (0 == posted[j]) {
 					errno_bak = errno;
@@ -1281,7 +1281,7 @@ static ssize_t ve_accelerated_io_writev_pwritev(int syscall_num, int fd,
 				 */
 				if (iov_len_less > ve_buff_size_less) {
 					iov_len_done = iov_len_done
-							+ ve_buff_size_less;
+						+ ve_buff_size_less;
 					next_iov_num = n;
 				} else {
 					iov_len_done = 0;
@@ -1292,7 +1292,7 @@ static ssize_t ve_accelerated_io_writev_pwritev(int syscall_num, int fd,
 				 * larger than the data in the VE buffer
 				 */
 				ve_buff_size_less = ve_buff_size_less
-							- iov_copy_size;
+					- iov_copy_size;
 				break;
 			}
 			iov_len_done = 0;
@@ -1302,8 +1302,8 @@ static ssize_t ve_accelerated_io_writev_pwritev(int syscall_num, int fd,
 
 		/* Transfer data from VE buffer to VH buffer by VE DMA */
 		ret = ve_dma_post(io_info.vh_vehva[j], io_info.ve_vehva[j],
-					GET_DMA_SIZE(transfer_size),
-					&vedma_handle[j]);
+				GET_DMA_SIZE(transfer_size),
+				&vedma_handle[j]);
 		if (SUCCESS != ret) {
 			exit_result = FAIL;
 			errno_bak = EIO;
@@ -1339,8 +1339,8 @@ static ssize_t ve_accelerated_io_writev_pwritev(int syscall_num, int fd,
 		/* Call syscall */
 		if (!data_err) {
 			write_in_size = syscall(write_syscall_type, fd,
-						io_info.vh_buff_and_flag[j],
-						need_write_in_size[j], ofs);
+					io_info.vh_buff_and_flag[j],
+					need_write_in_size[j], ofs);
 			if (FAIL == write_in_size) {
 				if (0 == i) {
 					errno_bak = errno;
@@ -1379,7 +1379,7 @@ static ssize_t ve_accelerated_io_writev_pwritev(int syscall_num, int fd,
  * @return Total number of read bytes on Success, -1 on Failure.
  */
 static ssize_t ve_accelerated_io_writev(int fd, const struct iovec *iov,
-					int count)
+		int count)
 {
 	return ve_accelerated_io_writev_pwritev(SYS_writev, fd, iov, count, 0);
 }
@@ -1395,26 +1395,13 @@ static ssize_t ve_accelerated_io_writev(int fd, const struct iovec *iov,
  * @return Total number of read bytes on Success, -1 on Failure.
  */
 static ssize_t ve_accelerated_io_pwritev(int fd, const struct iovec *iov,
-					int count, off_t ofs)
+		int count, off_t ofs)
 {
 	return ve_accelerated_io_writev_pwritev(SYS_pwritev, fd, iov, count, ofs);
 }
 
 /**
- * @brief This function clear the result of DMAATB register and vh buffer using
- * flag.
- */
-static void ve_accelerated_io_clear_acc_io_info(void)
-{
-	vh_resources.vh_buff[0] = NULL;
-	vh_resources.vehva[0] = 0;
-	vh_resources.vh_buff_using_flag = 0;
-	ve_resources.local_vehva = 0;
-}
-
-/**
  * @brief This function load call back function, initialize spin lock,
- * and load function ve_accelerated_io_clear_acc_io_info().
  */
 __attribute__((constructor)) void ve_accelerated_io_init(void)
 {
@@ -1427,14 +1414,22 @@ __attribute__((constructor)) void ve_accelerated_io_init(void)
 	__writev_hook = (__writev_hook) ? __writev_hook : ve_accelerated_io_writev;
 	__pwritev_hook = (__pwritev_hook) ? __pwritev_hook : ve_accelerated_io_pwritev;
 
-	/* initialize spin lock */
-	if (pthread_spin_init(&vh_resources.lock, 0) != 0) {
-		constructor_result = PDMA_IO;
-	}
 	/* clear vehva information when fork or vfork */
-	if (pthread_atfork (NULL, NULL, ve_accelerated_io_clear_acc_io_info)) {
+	if (pthread_atfork (ve_accelerated_io_atfork_prepare,
+				ve_accelerated_io_atfork_parent,
+				ve_accelerated_io_atfork_child)) {
 		constructor_result = PDMA_IO;
 	}
+
+	/* create key to use TSD */
+	if (pthread_key_create(&acc_io_resources_key, ve_accelerated_io_dstfunc)){
+		constructor_result = PDMA_IO;
+	}
+
+	if (sigfillset(&acc_io_sigset)) {
+		constructor_result = PDMA_IO;
+        }
+
 }
 
 #endif

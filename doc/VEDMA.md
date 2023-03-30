@@ -29,8 +29,13 @@ To develop VE programs using VE DMA and VH-VE SHM, please install libsysve-devel
 which has "vedma.h" header delcaring VE DMA API functions, "vhshm.h" header delcaring VH-VE SHM API functions
 
 For example, execute the following command as root.
+On ve1
 ~~~
-# yum install libsysve-devel
+# yum install libsysve-ve1-devel
+~~~
+On ve3
+~~~
+# yum install libsysve-ve3-devel
 ~~~
 System V shared memory will be created with SHM_HUGETLB flag to allocate huge pages (2MB pages).
 The kernel parameter "vm.nr_hugepages" needs to be set.

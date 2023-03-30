@@ -14,8 +14,13 @@ It cannot also request to read or write socket and pipe.
 To develop VE programs using VE AIO, please install libsysve-devel package, which has veaio.h header delcaring VE AIO API functions.
 
 For example, execute the forllowing command as root.
+On ve1
 ~~~
-# yum install libsysve-devel
+# yum install libsysve-ve1-devel
+~~~
+On ve3
+~~~
+# yum install libsysve-ve3-devel
 ~~~
 
 If you execute a program using VE AIO only, no extra packages are required.
