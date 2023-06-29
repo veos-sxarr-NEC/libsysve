@@ -392,7 +392,7 @@ ve_is_acc_io_enabled(void)
 	ret = syscall(SYS_sysve, VE_SYSVE_IS_ACC_IO_ENABLED);
 	return ret;
 }
-
+/** @} */ 
 /**
  * @brief This is a function of libsysve which is used to get the proginf
  * information.
@@ -408,5 +408,21 @@ int get_proginf_data(int version, void *buffer)
 	int ret = -1;
 
 	ret = syscall(SYS_sysve, VE_SYSVE_GET_PROGINF_DATA, version, buffer);
+	return ret;
+}
+
+/**
+ * @brief This is a function of libsysve which  sends request 
+ * to pseudo process to get original address from specified address.
+ *
+ * @param[in] Address of modified code
+ *
+ * @retval 0 over is the address of original code
+ * @retval -1 is returned and errno is set on failure.
+ */
+int64_t ve_get_original_addr(uint64_t mod_vemva)
+{
+	int64_t ret = -1;
+	ret = syscall(SYS_sysve, VE_SYSVE_GETORGADDR, mod_vemva);
 	return ret;
 }

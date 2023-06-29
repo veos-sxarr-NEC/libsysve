@@ -99,5 +99,5 @@ int ve_get_vemva_region(uint64_t *, size_t *, int64_t *);
 int ve_is_acc_io_enabled(void);
 int ve_get_ve_product_name(char *, size_t);
 int get_proginf_data(int, void *);
-
+int64_t ve_get_original_addr(uint64_t);
 #endif
