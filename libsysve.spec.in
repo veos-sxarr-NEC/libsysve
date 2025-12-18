@@ -56,10 +56,14 @@ libraries in libsysve package.
 %define _libdir @prefix@/lib
 %define __strip @ve_prefix@/bin/nstrip
 
-%if 0%{?rhel} == 8
+%if 0%{?rhel} >= 8
 %global __debug_install_post /opt/nec/ve/libexec/find-debuginfo.sh --unique-debug-suffix "-%{VERSION}-%{RELEASE}.%{_arch}" -S debugsourcefiles.list %{_builddir}/%{buildsubdir} %{nil}
 %else
 %global __debug_install_post /opt/nec/ve/libexec/find-debuginfo.sh  %{nil}
+%endif
+
+%if 0%{?rhel} >= 10
+%global __perl /usr/bin/perl
 %endif
 
 %prep
@@ -68,12 +72,19 @@ libraries in libsysve package.
 %setup -q -n @PACKAGE_NAME@-@PACKAGE_VERSION@
 
 %build
+%if 0%{?rhel} >= 10
+export PERL=%{__perl}
+%endif
 ./configure --host=ve-nec-linux \
     --prefix=%{_prefix} \
     CC=@CC@ CFLAGS='@CFLAGS@' LDFLAGS='@LDFLAGS@' %{_opt}
 make
 
 %install
+%if 0%{?rhel} >= 10
+export PERL=%{__perl}
+%define __brp_remove_la_files %{nil}
+%endif
 make install DESTDIR=${RPM_BUILD_ROOT}
 
 %clean

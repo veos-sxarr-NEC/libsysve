@@ -274,6 +274,8 @@ static int ve_accelerated_io_pre(acc_io_info *io_info)
                 acc_io_res->vehva = vehva;
                 acc_io_res->local_vehva = local_vehva;
 
+		acc_io_res->next = NULL;
+		acc_io_res->prev = NULL;
 		if(pthread_setspecific(acc_io_resources_key, (void *) acc_io_res)){
 			retval = FAIL;
 			ve_accelerated_io_release_resource(acc_io_res, 0);
@@ -371,8 +373,10 @@ static void ve_accelerated_io_dstfunc(void* param){
 	pthread_sigmask(SIG_BLOCK, &acc_io_sigset, &acc_io_sigset_old);
 	pthread_mutex_lock(&acc_io_resources_list_lock);
 
-	((acc_io_resources *)((acc_io_resources *)param)->prev)->next 
-		= ((acc_io_resources *)param)->next;
+	if(((acc_io_resources *)param)->prev != NULL){
+		((acc_io_resources *)((acc_io_resources *)param)->prev)->next
+			= ((acc_io_resources *)param)->next;
+	}
 	if(((acc_io_resources *)param)->next != NULL){
 		((acc_io_resources *)((acc_io_resources *)param)->next)->prev 
 			= ((acc_io_resources *)param)->prev;

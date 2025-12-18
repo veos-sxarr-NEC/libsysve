@@ -392,7 +392,8 @@ ve_is_acc_io_enabled(void)
 	ret = syscall(SYS_sysve, VE_SYSVE_IS_ACC_IO_ENABLED);
 	return ret;
 }
-/** @} */ 
+
+/*}@*/
 /**
  * @brief This is a function of libsysve which is used to get the proginf
  * information.
